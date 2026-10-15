@@ -29,46 +29,63 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user && request.nextUrl.pathname.startsWith('/dashboard')) {
+  const pathname = request.nextUrl.pathname
+
+  const isPublicAdminRoute =
+    pathname === '/admin/login' || pathname === '/admin/signup'
+
+  if (!user && pathname.startsWith('/dashboard')) {
     const url = request.nextUrl.clone()
     url.pathname = '/auth/login'
     url.searchParams.set('redirectTo', request.nextUrl.pathname)
     return NextResponse.redirect(url)
   }
 
-  if (!user && request.nextUrl.pathname.startsWith('/admin')) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/auth/login'
-    return NextResponse.redirect(url)
-  }
+  if (!isPublicAdminRoute && pathname.startsWith('/admin')) {
+    if (!user) {
+      return NextResponse.redirect(new URL('/admin/login', request.url))
+    }
 
-  if (user && request.nextUrl.pathname.startsWith('/admin')) {
     const { data: adminCheck } = await supabase
       .from('admins')
       .select('id')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
 
     if (!adminCheck) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/dashboard'
-      return NextResponse.redirect(url)
+      return NextResponse.redirect(new URL('/admin/login', request.url))
     }
   }
 
   if (
     user &&
-    (request.nextUrl.pathname.startsWith('/auth/login') ||
-      request.nextUrl.pathname.startsWith('/auth/signup'))
+    (pathname.startsWith('/auth/login') ||
+      pathname.startsWith('/auth/signup'))
   ) {
     const { data: adminCheck } = await supabase
       .from('admins')
       .select('id')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
 
     const url = request.nextUrl.clone()
-    url.pathname = adminCheck ? '/admin' : '/dashboard'
+    if (adminCheck) {
+      url.pathname = '/admin/students'
+      return NextResponse.redirect(url)
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('onboarding_complete, onboarding_step')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    if (!profile?.onboarding_complete) {
+      const step = profile?.onboarding_step ?? 0
+      url.pathname = `/onboarding/step/${Math.max(1, step + 1)}`
+    } else {
+      url.pathname = '/dashboard'
+    }
     return NextResponse.redirect(url)
   }
 

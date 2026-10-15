@@ -44,7 +44,7 @@ export function AdminSidebar() {
   async function logout() {
     const supabase = createClient()
     await supabase.auth.signOut()
-    router.push('/auth/login')
+    router.push('/admin/login')
   }
 
   function navItem(href: string, icon: typeof Users, label: string) {

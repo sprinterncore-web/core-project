@@ -11,10 +11,15 @@ create table if not exists public.admins (
 
 alter table public.admins enable row level security;
 
--- Only admins can read the admins table
+-- Admins can read the full list (for admin panel)
 create policy "Admins can view admin list"
   on public.admins for select
   using (auth.uid() in (select id from public.admins));
+
+-- Required for login/callback: user can read their own row to detect admin role
+create policy "Users can read own admin record"
+  on public.admins for select
+  using (auth.uid() = id);
 
 -- ─────────────────────────────────────────────
 -- COMPANIES TABLE

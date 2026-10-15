@@ -7,7 +7,7 @@ export async function isAdmin(userId: string): Promise<boolean> {
     .from('admins')
     .select('id')
     .eq('id', userId)
-    .single()
+    .maybeSingle()
   return !!data
 }
 

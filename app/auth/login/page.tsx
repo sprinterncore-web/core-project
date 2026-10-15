@@ -7,7 +7,6 @@ import { motion } from 'framer-motion'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { AuthLeftPanel } from '@/components/auth/AuthLeftPanel'
 import { createClient } from '@/lib/supabase/client'
-import { isAdmin } from '@/lib/supabase/admin'
 
 function GoogleIcon() {
   return (
@@ -47,31 +46,51 @@ function LoginForm() {
     }
   }, [searchParams])
 
-  async function handleLogin(e: React.FormEvent) {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
     const supabase = createClient()
-    const { error: signInError } = await supabase.auth.signInWithPassword({
+
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
 
-    if (signInError) {
-      setError(signInError.message)
+    if (error) {
+      setError(error.message)
       setLoading(false)
       return
     }
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (user && (await isAdmin(user.id))) {
-      router.push('/admin')
-    } else {
-      router.push('/dashboard')
+    if (data.user) {
+      const { data: adminRow } = await supabase
+        .from('admins')
+        .select('id')
+        .eq('id', data.user.id)
+        .single()
+
+      if (adminRow) {
+        router.refresh()
+        router.push('/admin')
+      } else {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('onboarding_complete, onboarding_step')
+          .eq('id', data.user.id)
+          .single()
+
+        if (!profile?.onboarding_complete) {
+          const step = profile?.onboarding_step ?? 0
+          router.push(`/onboarding/step/${Math.max(1, step + 1)}`)
+        } else {
+          router.push('/dashboard')
+        }
+      }
     }
+
+    setLoading(false)
   }
 
   async function handleGoogle() {
@@ -181,6 +200,15 @@ export default function LoginPage() {
           <Suspense fallback={<div className="text-slate">Loading…</div>}>
             <LoginForm />
           </Suspense>
+          <p className="mt-6 text-center text-xs text-slate/40">
+            Sprintern team?{' '}
+            <Link
+              href="/admin/login"
+              className="text-slate/60 underline hover:text-slate"
+            >
+              Master Panel →
+            </Link>
+          </p>
         </div>
       </div>
     </div>

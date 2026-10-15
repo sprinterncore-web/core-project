@@ -20,7 +20,7 @@ export async function GET(request: Request) {
           .from('admins')
           .select('id')
           .eq('id', user.id)
-          .single()
+          .maybeSingle()
 
         if (adminCheck) {
           return NextResponse.redirect(`${origin}/admin`)
@@ -30,7 +30,7 @@ export async function GET(request: Request) {
           .from('profiles')
           .select('onboarding_complete, onboarding_step')
           .eq('id', user.id)
-          .single()
+          .maybeSingle()
 
         if (!profile?.onboarding_complete) {
           const step = profile?.onboarding_step ?? 0

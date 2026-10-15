@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 
-export default async function AdminLayout({
+export default async function AdminPanelLayout({
   children,
 }: {
   children: React.ReactNode
@@ -11,15 +11,15 @@ export default async function AdminLayout({
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user) redirect('/auth/login')
+  if (!user) redirect('/admin/login')
 
   const { data: adminCheck } = await supabase
     .from('admins')
-    .select('id, full_name, role')
+    .select('id')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
-  if (!adminCheck) redirect('/dashboard')
+  if (!adminCheck) redirect('/admin/login')
 
   return <div className="flex min-h-screen bg-canvas">{children}</div>
 }
