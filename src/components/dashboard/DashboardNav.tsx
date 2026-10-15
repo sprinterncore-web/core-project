@@ -1,0 +1,69 @@
+'use client'
+
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { Bell, HelpCircle, Zap } from 'lucide-react'
+
+type DashboardNavProps = {
+  userEmail: string
+  userName: string | null
+}
+
+function initials(userName: string | null, email: string): string {
+  if (userName) {
+    const parts = userName.trim().split(/\s+/)
+    if (parts.length >= 2) {
+      return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
+    }
+    return parts[0].slice(0, 2).toUpperCase()
+  }
+  return email.charAt(0).toUpperCase()
+}
+
+export function DashboardNav({ userEmail, userName }: DashboardNavProps) {
+  const router = useRouter()
+
+  return (
+    <header className="sticky top-0 z-40 h-16 border-b border-line bg-white">
+      <div className="mx-auto flex h-full max-w-[1280px] items-center justify-between px-6">
+        <Link href="/" className="flex items-baseline gap-0">
+          <span className="mr-2 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-blue to-teal">
+            <Zap size={18} className="text-white" />
+          </span>
+          <span className="text-lg font-bold text-navy">sprint</span>
+          <span className="text-lg font-bold text-teal">ern</span>
+        </Link>
+
+        <div className="hidden md:flex">
+          <span className="rounded-full border border-teal/20 bg-teal-wash px-4 py-1.5 text-xs font-semibold text-teal">
+            ● STUDENT × STARTUP MATCH
+          </span>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            className="hidden items-center gap-1.5 text-sm text-slate hover:text-navy sm:flex"
+          >
+            <HelpCircle size={16} />
+            Help
+          </button>
+          <button type="button" className="relative text-slate">
+            <Bell size={20} />
+            <span className="absolute right-0 top-0 h-2 w-2 rounded-full bg-red-500" />
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push('/')}
+            className="hidden rounded-full border border-line px-4 py-2 text-sm font-medium text-navy transition-all hover:border-navy sm:block"
+          >
+            Save & Exit
+          </button>
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-navy text-sm font-bold text-white">
+            {initials(userName, userEmail)}
+          </div>
+        </div>
+      </div>
+    </header>
+  )
+}

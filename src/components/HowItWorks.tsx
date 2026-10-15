@@ -1,3 +1,5 @@
+'use client'
+
 import { useRef } from 'react'
 import { motion, useInView } from 'framer-motion'
 import { BrainCircuit, CalendarCheck, CheckCircle2, UserCheck } from 'lucide-react'

@@ -1,18 +1,19 @@
-/** @type {import('tailwindcss').Config} */
-export default {
-  content: ['./index.html', './src/**/*.{ts,tsx}'],
+import type { Config } from 'tailwindcss'
+
+const config: Config = {
+  content: ['./src/**/*.{ts,tsx}', './app/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {
-        navy:       '#0A1628',
-        blue:       '#2E6FF3',
-        teal:       '#00C9A7',
-        'teal-dark':'#006B58',
-        slate:      '#64748B',
-        canvas:     '#F4F7FB',
-        surface:    '#FFFFFF',
-        line:       '#E2E8F0',
-        'teal-wash':'#EDFAF7',
+        navy:        '#0A1628',
+        blue:        '#2E6FF3',
+        teal:        '#00C9A7',
+        'teal-dark': '#006B58',
+        slate:       '#64748B',
+        canvas:      '#F4F7FB',
+        surface:     '#FFFFFF',
+        line:        '#E2E8F0',
+        'teal-wash': '#EDFAF7',
       },
       fontFamily: {
         sans: ['Plus Jakarta Sans', 'sans-serif'],
@@ -35,3 +36,5 @@ export default {
   },
   plugins: [],
 }
+
+export default config
