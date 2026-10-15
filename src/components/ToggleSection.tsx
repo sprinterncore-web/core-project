@@ -126,7 +126,7 @@ export default function ToggleSection() {
   const cards = active === 'companies' ? companyCards : studentCards
 
   return (
-    <section className="bg-canvas px-6 py-24">
+    <section id="toggle-section" className="bg-canvas px-6 py-24">
       <div className="mb-14 flex justify-center">
         <div className="relative inline-flex gap-1 rounded-full bg-line/60 p-1.5">
           {(['companies', 'students'] as const).map((tab) => (

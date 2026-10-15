@@ -18,6 +18,19 @@ export default function OnboardingStepPage() {
     }
   }, [step, router])
 
+  useEffect(() => {
+    if (step === 4) {
+      const timer = setTimeout(async () => {
+        try {
+          await fetch('/api/match', { method: 'POST' })
+        } catch {
+          // Fail silently — dashboard will show dummy data as fallback
+        }
+      }, 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [step])
+
   if (Number.isNaN(step) || step < 1 || step > 4) {
     return null
   }

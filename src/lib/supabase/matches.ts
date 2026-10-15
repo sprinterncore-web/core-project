@@ -9,7 +9,12 @@ export async function getMatchesForStudent(
 
   const { data, error } = await supabase
     .from('match_results')
-    .select('*, job_posting:job_postings(*)')
+    .select(
+      `
+    *,
+    job_posting:job_postings(*)
+  `
+    )
     .eq('student_id', studentId)
     .eq('is_visible', true)
     .order('match_score', { ascending: false })

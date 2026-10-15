@@ -1,15 +1,18 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Menu, Zap } from 'lucide-react'
 import { useScrollY } from '../hooks/useScrollY'
 
+const MotionLink = motion(Link)
+
 const navLinks = [
-  { label: 'For Companies', href: '#' },
-  { label: 'For Students', href: '#' },
-  { label: 'How it works', href: '#how-it-works' },
-  { label: 'About', href: '#' },
+  { label: 'For Companies', href: '/#toggle-section' },
+  { label: 'For Students', href: '/auth/signup' },
+  { label: 'How it works', href: '/#how-it-works' },
+  { label: 'About', href: '/#about' },
 ]
 
 export default function Navbar() {
@@ -29,41 +32,47 @@ export default function Navbar() {
         className={`h-[72px] transition-all duration-300 ${barClass}`}
       >
         <div className="mx-auto flex h-full max-w-[1280px] items-center justify-between px-6">
-          <a href="#" className="flex items-baseline gap-0">
+          <Link href="/" className="flex items-baseline gap-0">
             <span className="mr-2.5 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-blue to-teal">
               <Zap size={20} className="text-white" />
             </span>
             <span className="text-xl font-bold text-navy">sprint</span>
             <span className="text-xl font-bold text-teal">ern</span>
-          </a>
+          </Link>
 
           <div className="hidden items-center gap-8 md:flex">
             {navLinks.map((link) => (
-              <a
+              <Link
                 key={link.label}
                 href={link.href}
                 className="text-sm font-medium text-slate transition-colors duration-150 hover:text-navy"
               >
                 {link.label}
-              </a>
+              </Link>
             ))}
           </div>
 
-          <div className="hidden items-center md:flex">
-            <a
-              href="#"
-              className="mr-2 text-sm font-medium text-slate transition-colors hover:text-navy"
+          <div className="hidden items-center gap-4 md:flex">
+            <Link
+              href="/auth/login"
+              className="text-sm font-medium text-slate transition-colors hover:text-navy"
             >
               Log in
-            </a>
-            <motion.a
-              href="#"
+            </Link>
+            <Link
+              href="/auth/signup"
+              className="text-sm font-semibold text-teal transition-colors hover:text-teal-dark"
+            >
+              Sign up
+            </Link>
+            <MotionLink
+              href="/book"
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               className="rounded-full bg-teal px-5 py-2.5 text-sm font-semibold text-white shadow-[0_4px_12px_rgba(0,201,167,0.3)] transition-all duration-200 hover:bg-teal-dark"
             >
               Book a Call
-            </motion.a>
+            </MotionLink>
           </div>
 
           <button
@@ -88,23 +97,37 @@ export default function Navbar() {
           >
             <div className="flex flex-col gap-5">
               {navLinks.map((link) => (
-                <a
+                <Link
                   key={link.label}
                   href={link.href}
                   onClick={closeMobile}
                   className="text-base font-medium text-navy"
                 >
                   {link.label}
-                </a>
+                </Link>
               ))}
-              <motion.a
-                href="#"
+              <Link
+                href="/auth/login"
+                onClick={closeMobile}
+                className="text-base font-medium text-navy"
+              >
+                Log in
+              </Link>
+              <Link
+                href="/auth/signup"
+                onClick={closeMobile}
+                className="text-base font-semibold text-teal"
+              >
+                Sign up
+              </Link>
+              <MotionLink
+                href="/book"
                 onClick={closeMobile}
                 whileTap={{ scale: 0.97 }}
                 className="mt-2 w-full rounded-full bg-teal py-3 text-center text-sm font-semibold text-white shadow-[0_4px_12px_rgba(0,201,167,0.3)]"
               >
                 Book a Call
-              </motion.a>
+              </MotionLink>
             </div>
           </motion.div>
         )}

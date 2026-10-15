@@ -4,18 +4,29 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/dashboard'
 
   if (code) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
+
     if (!error) {
+      const supabaseClient = await createClient()
       const {
         data: { user },
-      } = await supabase.auth.getUser()
+      } = await supabaseClient.auth.getUser()
 
       if (user) {
-        const { data: profile } = await supabase
+        const { data: adminCheck } = await supabaseClient
+          .from('admins')
+          .select('id')
+          .eq('id', user.id)
+          .single()
+
+        if (adminCheck) {
+          return NextResponse.redirect(`${origin}/admin`)
+        }
+
+        const { data: profile } = await supabaseClient
           .from('profiles')
           .select('onboarding_complete, onboarding_step')
           .eq('id', user.id)
@@ -27,9 +38,9 @@ export async function GET(request: Request) {
             `${origin}/onboarding/step/${Math.max(1, step + 1)}`
           )
         }
-      }
 
-      return NextResponse.redirect(`${origin}${next}`)
+        return NextResponse.redirect(`${origin}/dashboard`)
+      }
     }
   }
 

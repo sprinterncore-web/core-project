@@ -9,6 +9,16 @@ export type Json =
 export type RoleType = 'developer' | 'designer' | 'growth' | 'data'
 export type ProfileStatus = 'pending' | 'verified' | 'active'
 export type Availability = 'immediate' | '2weeks' | 'nextmonth'
+export type CompanyStatus = 'pending' | 'active' | 'inactive'
+export type CompanyStage =
+  | 'Pre-Seed'
+  | 'Seed Stage'
+  | 'Series A'
+  | 'Series B'
+  | 'YC W24'
+  | 'YC S24'
+  | 'Bootstrapped'
+  | 'Other'
 
 export interface Profile {
   id: string
@@ -33,6 +43,35 @@ export interface Profile {
   profile_status: ProfileStatus
 }
 
+export interface Company {
+  id: string
+  created_at: string
+  company_name: string
+  company_initial: string
+  website: string | null
+  industry: string | null
+  stage: string
+  company_size: string | null
+  location: string | null
+  description: string | null
+  contact_name: string
+  contact_email: string
+  contact_title: string | null
+  status: CompanyStatus
+  call_booked: boolean
+  call_notes: string | null
+  platform_access: boolean
+  access_granted_at: string | null
+}
+
+export interface Admin {
+  id: string
+  created_at: string
+  email: string
+  full_name: string | null
+  role: 'admin' | 'super_admin'
+}
+
 export interface JobPosting {
   id: string
   created_at: string
@@ -51,6 +90,10 @@ export interface JobPosting {
   starts_in_days: number
   is_active: boolean
   role_type: RoleType
+  company_id?: string | null
+  notes?: string | null
+  created_by?: string | null
+  company?: { company_name: string; stage: string }
 }
 
 export interface MatchResult {

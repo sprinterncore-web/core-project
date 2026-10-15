@@ -4,7 +4,7 @@ const footerLinks = ['For Companies', 'For Students', 'Privacy', 'Terms']
 
 export default function Footer() {
   return (
-    <footer className="border-t-[3px] border-teal/50 bg-navy">
+    <footer id="about" className="border-t-[3px] border-teal/50 bg-navy">
       <div className="mx-auto flex max-w-[1280px] flex-col justify-between gap-10 px-6 py-14 md:flex-row">
         <div>
           <div className="flex items-baseline">

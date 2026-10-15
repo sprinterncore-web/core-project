@@ -7,6 +7,7 @@ import { motion } from 'framer-motion'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { AuthLeftPanel } from '@/components/auth/AuthLeftPanel'
 import { createClient } from '@/lib/supabase/client'
+import { isAdmin } from '@/lib/supabase/admin'
 
 function GoogleIcon() {
   return (
@@ -63,7 +64,14 @@ function LoginForm() {
       return
     }
 
-    router.push('/dashboard')
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (user && (await isAdmin(user.id))) {
+      router.push('/admin')
+    } else {
+      router.push('/dashboard')
+    }
   }
 
   async function handleGoogle() {
