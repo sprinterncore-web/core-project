@@ -8,8 +8,12 @@ import { AdminShell } from '@/components/admin/AdminShell'
 import { CompanyForm } from '@/components/admin/companies/CompanyForm'
 import {
   getAllJobPostings,
+  getCompanyUsersForLinking,
+  linkCompanyUserByEmail,
   updateCompany,
+  updateCompanyUser,
 } from '@/lib/supabase/admin'
+import type { CompanyUser } from '@/types/database'
 import { createClient } from '@/lib/supabase/client'
 import type { Company, JobPosting } from '@/types/database'
 
@@ -19,6 +23,13 @@ export default function EditCompanyPage() {
   const [company, setCompany] = useState<Company | null>(null)
   const [jobs, setJobs] = useState<JobPosting[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [portalUsers, setPortalUsers] = useState<CompanyUser[]>([])
+  const [linkEmail, setLinkEmail] = useState('')
+  const [linkMsg, setLinkMsg] = useState<string | null>(null)
+
+  async function loadPortalUsers(co: Company) {
+    setPortalUsers(await getCompanyUsersForLinking(id, co.contact_email))
+  }
 
   useEffect(() => {
     async function load() {
@@ -28,9 +39,11 @@ export default function EditCompanyPage() {
         .select('*')
         .eq('id', id)
         .single()
-      setCompany(data as Company)
+      const co = data as Company
+      setCompany(co)
       const all = await getAllJobPostings()
       setJobs(all.filter((j) => j.company_id === id))
+      if (co) await loadPortalUsers(co)
     }
     load()
   }, [id])
@@ -68,6 +81,75 @@ export default function EditCompanyPage() {
           }}
         />
       </div>
+
+      <section className="mt-8 rounded-2xl border border-line bg-white p-6">
+        <h3 className="font-bold text-navy">Company Portal Access</h3>
+        <p className="mt-1 text-sm text-slate">
+          Link company signup accounts to this company record.
+        </p>
+        {portalUsers.length === 0 ? (
+          <p className="mt-4 text-sm text-slate">No portal users found yet.</p>
+        ) : (
+          <ul className="mt-4 space-y-3">
+            {portalUsers.map((u) => (
+              <li
+                key={u.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-canvas px-4 py-3"
+              >
+                <div>
+                  <p className="text-sm font-semibold text-navy">
+                    {u.full_name} · {u.email}
+                  </p>
+                  <p className="text-xs text-slate">
+                    {u.company_id === id
+                      ? 'Linked to this company'
+                      : u.company_id
+                        ? 'Linked elsewhere'
+                        : 'Not linked'}
+                  </p>
+                </div>
+                {u.company_id !== id ? (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await updateCompanyUser(u.id, { company_id: id })
+                      if (company) await loadPortalUsers(company)
+                    }}
+                    className="rounded-full bg-blue px-4 py-2 text-xs font-semibold text-white"
+                  >
+                    Link to this company
+                  </button>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="mt-6 flex flex-wrap gap-2">
+          <input
+            className="min-w-[200px] flex-1 rounded-xl border border-line px-4 py-2 text-sm"
+            placeholder="Link by email"
+            value={linkEmail}
+            onChange={(e) => setLinkEmail(e.target.value)}
+          />
+          <button
+            type="button"
+            onClick={async () => {
+              const { error: err } = await linkCompanyUserByEmail(
+                linkEmail.trim(),
+                id
+              )
+              setLinkMsg(err ?? 'Linked successfully')
+              if (!err && company) await loadPortalUsers(company)
+            }}
+            className="rounded-full bg-navy px-5 py-2 text-sm font-semibold text-white"
+          >
+            Link
+          </button>
+        </div>
+        {linkMsg ? (
+          <p className="mt-2 text-xs text-slate">{linkMsg}</p>
+        ) : null}
+      </section>
 
       <section className="mt-12 rounded-2xl border border-line bg-white p-6">
         <div className="flex items-center justify-between">

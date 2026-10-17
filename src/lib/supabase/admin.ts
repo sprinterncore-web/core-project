@@ -1,5 +1,12 @@
 import { createClient } from './client'
-import type { Admin, Company, JobPosting, Profile } from '@/types/database'
+import type {
+  Admin,
+  Company,
+  CompanyUser,
+  JobPosting,
+  Notification,
+  Profile,
+} from '@/types/database'
 
 export async function isAdmin(userId: string): Promise<boolean> {
   const supabase = createClient()
@@ -65,10 +72,92 @@ export async function createJobPosting(
   const supabase = createClient()
   const { data, error } = await supabase
     .from('job_postings')
-    .insert(job)
+    .insert({
+      ...job,
+      approval_status: job.approval_status ?? 'approved',
+      submitted_by: job.submitted_by ?? 'admin',
+      rejection_reason: job.rejection_reason ?? null,
+    })
     .select('id')
     .single()
   return { id: data?.id ?? null, error: error?.message ?? null }
+}
+
+export async function getPendingJobPostings(): Promise<JobPosting[]> {
+  const supabase = createClient()
+  const { data } = await supabase
+    .from('job_postings')
+    .select('*, company:companies(company_name)')
+    .eq('approval_status', 'pending')
+    .eq('submitted_by', 'company')
+    .order('created_at', { ascending: true })
+  return (data ?? []) as JobPosting[]
+}
+
+export async function getAdminNotifications(): Promise<Notification[]> {
+  const supabase = createClient()
+  const { data } = await supabase
+    .from('notifications')
+    .select('*')
+    .eq('read', false)
+    .order('created_at', { ascending: false })
+    .limit(20)
+  return (data ?? []) as Notification[]
+}
+
+export async function getCompanyUsersForLinking(
+  companyId: string,
+  contactEmail: string
+): Promise<CompanyUser[]> {
+  const supabase = createClient()
+  const { data: linked } = await supabase
+    .from('company_users')
+    .select('*')
+    .eq('company_id', companyId)
+  const { data: unlinked } = await supabase
+    .from('company_users')
+    .select('*')
+    .is('company_id', null)
+    .ilike('email', contactEmail)
+  const byEmail = await supabase
+    .from('company_users')
+    .select('*')
+    .is('company_id', null)
+    .eq('email', contactEmail)
+
+  const map = new Map<string, CompanyUser>()
+  for (const row of [...(linked ?? []), ...(unlinked ?? []), ...(byEmail.data ?? [])]) {
+    map.set(row.id, row as CompanyUser)
+  }
+  return Array.from(map.values())
+}
+
+export async function updateCompanyUser(
+  userId: string,
+  updates: Partial<CompanyUser>
+): Promise<{ error: string | null }> {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('company_users')
+    .update(updates)
+    .eq('id', userId)
+  return { error: error?.message ?? null }
+}
+
+export async function linkCompanyUserByEmail(
+  email: string,
+  companyId: string
+): Promise<{ error: string | null }> {
+  const supabase = createClient()
+  const { data, error: findErr } = await supabase
+    .from('company_users')
+    .select('id')
+    .eq('email', email)
+    .maybeSingle()
+  if (findErr || !data) {
+    return { error: findErr?.message ?? 'No company user found for that email' }
+  }
+  return updateCompanyUser(data.id, { company_id: companyId })
 }
 
 export async function updateJobPosting(

@@ -1,9 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Menu, UserPlus, Zap } from 'lucide-react'
+import {
+  Briefcase,
+  Building2,
+  ChevronDown,
+  GraduationCap,
+  Menu,
+  UserPlus,
+  Zap,
+} from 'lucide-react'
 import { useScrollY } from '../hooks/useScrollY'
 
 const MotionLink = motion(Link)
@@ -18,6 +26,8 @@ const navLinks = [
 export default function Navbar() {
   const scrollY = useScrollY()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
   const scrolled = scrollY >= 80
 
   const barClass = scrolled
@@ -26,11 +36,22 @@ export default function Navbar() {
 
   const closeMobile = () => setMobileOpen(false)
 
+  useEffect(() => {
+    function onDocClick(e: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
+        setDropdownOpen(false)
+      }
+    }
+    document.addEventListener('click', onDocClick)
+    return () => document.removeEventListener('click', onDocClick)
+  }, [])
+
   return (
     <header className="sticky top-0 z-50">
-      <nav
-        className={`h-[72px] transition-all duration-300 ${barClass}`}
-      >
+      <nav className={`h-[72px] transition-all duration-300 ${barClass}`}>
         <div className="mx-auto flex h-full max-w-[1280px] items-center justify-between px-6">
           <Link href="/" className="flex items-baseline gap-0">
             <span className="mr-2.5 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-blue to-teal">
@@ -53,25 +74,93 @@ export default function Navbar() {
           </div>
 
           <div className="hidden items-center gap-4 md:flex">
-            <Link
-              href="/auth/login"
-              className="text-sm font-medium text-slate transition-colors hover:text-navy"
-            >
-              Log in
-            </Link>
-            <Link
-              href="/auth/signup"
-              className="text-sm font-semibold text-teal transition-colors hover:text-teal-dark"
-            >
-              Sign up
-            </Link>
-            <Link
-              href="/auth/signup"
-              className="hidden items-center justify-center gap-2 rounded-full bg-blue px-5 py-2.5 text-sm font-semibold text-white shadow-[0_4px_12px_rgba(46,111,243,0.3)] transition-all duration-200 hover:bg-blue/90 sm:inline-flex"
-            >
-              <UserPlus size={15} />
-              Students
-            </Link>
+            <div className="relative" ref={dropdownRef}>
+              <button
+                type="button"
+                onClick={() => setDropdownOpen((o) => !o)}
+                className="inline-flex items-center gap-1 text-sm font-medium text-slate hover:text-navy"
+              >
+                Sign In / Sign Up
+                <ChevronDown size={14} />
+              </button>
+              <AnimatePresence>
+                {dropdownOpen ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 top-full z-50 mt-2 w-56 rounded-2xl border border-line bg-white p-2 shadow-lg"
+                  >
+                    <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate/50">
+                      Students
+                    </p>
+                    <Link
+                      href="/auth/login"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-canvas"
+                    >
+                      <GraduationCap size={16} className="text-teal" />
+                      <div>
+                        <p className="text-sm font-semibold text-navy">
+                          Student Login
+                        </p>
+                        <p className="text-xs text-slate/60">
+                          Access your matches
+                        </p>
+                      </div>
+                    </Link>
+                    <Link
+                      href="/auth/signup"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-canvas"
+                    >
+                      <UserPlus size={16} className="text-teal" />
+                      <div>
+                        <p className="text-sm font-semibold text-navy">
+                          Student Sign Up
+                        </p>
+                        <p className="text-xs text-slate/60">
+                          Join as a student
+                        </p>
+                      </div>
+                    </Link>
+                    <div className="my-2 border-t border-line" />
+                    <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate/50">
+                      Companies
+                    </p>
+                    <Link
+                      href="/company/login"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-canvas"
+                    >
+                      <Building2 size={16} className="text-blue" />
+                      <div>
+                        <p className="text-sm font-semibold text-navy">
+                          Company Login
+                        </p>
+                        <p className="text-xs text-slate/60">
+                          Access your portal
+                        </p>
+                      </div>
+                    </Link>
+                    <Link
+                      href="/company/signup"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-canvas"
+                    >
+                      <Briefcase size={16} className="text-blue" />
+                      <div>
+                        <p className="text-sm font-semibold text-navy">
+                          Company Sign Up
+                        </p>
+                        <p className="text-xs text-slate/60">Partner with us</p>
+                      </div>
+                    </Link>
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+            </div>
             <MotionLink
               href="/book"
               whileHover={{ scale: 1.03 }}
@@ -113,25 +202,23 @@ export default function Navbar() {
                   {link.label}
                 </Link>
               ))}
-              <Link
-                href="/auth/login"
-                onClick={closeMobile}
-                className="text-base font-medium text-navy"
-              >
-                Log in
+              <Link href="/auth/login" onClick={closeMobile} className="text-base">
+                Student Login
               </Link>
-              <Link
-                href="/auth/signup"
-                onClick={closeMobile}
-                className="text-base font-semibold text-teal"
-              >
-                Sign up
+              <Link href="/auth/signup" onClick={closeMobile} className="text-base">
+                Student Sign Up
+              </Link>
+              <Link href="/company/login" onClick={closeMobile} className="text-base">
+                Company Login
+              </Link>
+              <Link href="/company/signup" onClick={closeMobile} className="text-base">
+                Company Sign Up
               </Link>
               <MotionLink
                 href="/book"
                 onClick={closeMobile}
                 whileTap={{ scale: 0.97 }}
-                className="mt-2 w-full rounded-full bg-teal py-3 text-center text-sm font-semibold text-white shadow-[0_4px_12px_rgba(0,201,167,0.3)]"
+                className="mt-2 w-full rounded-full bg-teal py-3 text-center text-sm font-semibold text-white"
               >
                 Book a Call
               </MotionLink>

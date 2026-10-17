@@ -72,6 +72,24 @@ export async function middleware(request: NextRequest) {
   }
 
   if (
+    (pathname.startsWith('/company/dashboard') ||
+      pathname.startsWith('/company/jobs')) &&
+    (!user || !isConfirmed)
+  ) {
+    return NextResponse.redirect(new URL('/company/login', request.url))
+  }
+
+  if (
+    user &&
+    isConfirmed &&
+    (pathname === '/company/login' || pathname === '/company/signup')
+  ) {
+    return NextResponse.redirect(
+      new URL('/company/dashboard', request.url)
+    )
+  }
+
+  if (
     user &&
     isConfirmed &&
     (pathname.startsWith('/auth/login') ||
@@ -80,6 +98,17 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone()
     if (await isAdminUserId(user.id)) {
       url.pathname = '/admin/students'
+      return NextResponse.redirect(url)
+    }
+
+    const { data: companyUser } = await supabase
+      .from('company_users')
+      .select('id')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    if (companyUser) {
+      url.pathname = '/company/dashboard'
       return NextResponse.redirect(url)
     }
 

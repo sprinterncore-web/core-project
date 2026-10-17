@@ -99,6 +99,9 @@ export function JobForm({
       is_active: isActive,
       notes: notes || null,
       created_by: initial?.created_by ?? null,
+      approval_status: 'approved',
+      submitted_by: 'admin',
+      rejection_reason: null,
     })
     setSaving(false)
   }

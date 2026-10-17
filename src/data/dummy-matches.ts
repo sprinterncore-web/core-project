@@ -35,6 +35,9 @@ export const DUMMY_MATCHES: MatchResult[] = [
       starts_in_days: 3,
       is_active: true,
       role_type: 'developer',
+      approval_status: 'approved',
+      submitted_by: 'admin',
+      rejection_reason: null,
     },
   },
   {
@@ -71,6 +74,9 @@ export const DUMMY_MATCHES: MatchResult[] = [
       starts_in_days: 4,
       is_active: true,
       role_type: 'developer',
+      approval_status: 'approved',
+      submitted_by: 'admin',
+      rejection_reason: null,
     },
   },
   {
@@ -106,6 +112,9 @@ export const DUMMY_MATCHES: MatchResult[] = [
       starts_in_days: 7,
       is_active: true,
       role_type: 'developer',
+      approval_status: 'approved',
+      submitted_by: 'admin',
+      rejection_reason: null,
     },
   },
   {
@@ -136,6 +145,9 @@ export const DUMMY_MATCHES: MatchResult[] = [
       starts_in_days: 5,
       is_active: true,
       role_type: 'developer',
+      approval_status: 'approved',
+      submitted_by: 'admin',
+      rejection_reason: null,
     },
   },
 ]

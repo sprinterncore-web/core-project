@@ -10,6 +10,8 @@ export type RoleType = 'developer' | 'designer' | 'growth' | 'data'
 export type ProfileStatus = 'pending' | 'verified' | 'active'
 export type Availability = 'immediate' | '2weeks' | 'nextmonth'
 export type CompanyStatus = 'pending' | 'active' | 'inactive'
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected'
+
 export type CompanyStage =
   | 'Pre-Seed'
   | 'Seed Stage'
@@ -64,6 +66,26 @@ export interface Company {
   access_granted_at: string | null
 }
 
+export interface CompanyUser {
+  id: string
+  created_at: string
+  company_id: string | null
+  email: string
+  full_name: string
+  title: string | null
+  email_confirmed: boolean
+}
+
+export interface Notification {
+  id: string
+  created_at: string
+  type: string
+  title: string
+  body: string | null
+  metadata: Record<string, unknown>
+  read: boolean
+}
+
 export interface Admin {
   id: string
   created_at: string
@@ -94,6 +116,9 @@ export interface JobPosting {
   notes?: string | null
   created_by?: string | null
   company?: { company_name: string; stage: string }
+  approval_status: ApprovalStatus
+  submitted_by: 'admin' | 'company'
+  rejection_reason: string | null
 }
 
 export interface MatchResult {
