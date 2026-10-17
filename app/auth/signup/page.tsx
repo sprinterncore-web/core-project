@@ -42,11 +42,46 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [resendSent, setResendSent] = useState(false)
+
+  const currentYear = new Date().getFullYear()
+  const gradYears = Array.from({ length: 7 }, (_, i) => currentYear - 2 + i)
+
+  async function handleResendEmail() {
+    const supabase = createClient()
+    await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    })
+    setResendSent(true)
+    setTimeout(() => setResendSent(false), 3000)
+  }
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError(null)
+
+    if (!email.toLowerCase().endsWith('.edu')) {
+      setError('A university .edu email address is required to sign up.')
+      setLoading(false)
+      return
+    }
+
+    const gradYearNum = parseInt(gradYear, 10)
+    const minYear = currentYear - 2
+    const maxYear = currentYear + 4
+
+    if (gradYearNum < minYear || gradYearNum > maxYear) {
+      setError(
+        `Access is available from your freshman year until 2 years after graduation. Valid graduation years: ${minYear}–${maxYear}.`
+      )
+      setLoading(false)
+      return
+    }
 
     const supabase = createClient()
     const { data, error: signUpError } = await supabase.auth.signUp({
@@ -103,19 +138,53 @@ export default function SignupPage() {
           </p>
 
           {success ? (
-            <div className="mt-12 text-center">
-              <MailCheck size={48} className="mx-auto text-teal" />
-              <h2 className="mt-4 text-xl font-bold text-navy">
-                Check your email
-              </h2>
-              <p className="mt-2 text-sm text-slate">
-                We sent a confirmation link to {email}. Click it to activate
-                your account.
+            <div className="mt-8 flex flex-col items-center py-8 text-center">
+              <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-teal/20 bg-teal-wash">
+                <MailCheck size={32} className="text-teal" />
+              </div>
+
+              <h3 className="text-xl font-bold text-navy">Check your inbox</h3>
+
+              <p className="mt-3 max-w-xs text-sm leading-relaxed text-slate">
+                We sent a confirmation link to{' '}
+                <span className="font-semibold text-navy">{email}</span>. Click
+                it to activate your Sprintern account and begin your profile
+                setup.
               </p>
-              <p className="mt-3 text-sm text-slate">
-                Once you confirm your email, you&apos;ll be taken through a
-                quick 4-step profile setup.
+
+              <div className="mt-6 w-full rounded-xl bg-canvas px-5 py-4 text-left">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate/70">
+                  What happens next
+                </p>
+                <div className="flex flex-col gap-2">
+                  {[
+                    'Confirm your email',
+                    'Complete your 4-step profile',
+                    'Receive your sprint matches within 48hrs',
+                  ].map((step, i) => (
+                    <div key={step} className="flex items-center gap-3">
+                      <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-teal text-[10px] font-bold text-white">
+                        {i + 1}
+                      </span>
+                      <span className="text-sm text-navy">{step}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <p className="mt-6 text-xs text-slate/50">
+                Didn&apos;t receive it?{' '}
+                <button
+                  type="button"
+                  onClick={handleResendEmail}
+                  className="font-medium text-teal hover:underline"
+                >
+                  Resend confirmation email
+                </button>
               </p>
+              {resendSent ? (
+                <p className="mt-2 text-xs text-teal">Sent! Check your inbox.</p>
+              ) : null}
             </div>
           ) : (
             <form
@@ -139,14 +208,19 @@ export default function SignupPage() {
                 />
               </div>
 
-              <input
-                required
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="rounded-xl border border-line bg-white px-4 py-3 text-sm text-navy outline-none focus:border-teal focus:ring-2 focus:ring-teal/20"
-              />
+              <div>
+                <input
+                  required
+                  type="email"
+                  placeholder="Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full rounded-xl border border-line bg-white px-4 py-3 text-sm text-navy outline-none focus:border-teal focus:ring-2 focus:ring-teal/20"
+                />
+                <p className="mt-1 text-xs text-slate/60">
+                  University .edu email required (e.g. yourname@berkeley.edu)
+                </p>
+              </div>
 
               <div className="relative">
                 <input
@@ -193,8 +267,8 @@ export default function SignupPage() {
                 <option value="" disabled>
                   Graduation year
                 </option>
-                {['2025', '2026', '2027', '2028', '2029'].map((y) => (
-                  <option key={y} value={y}>
+                {gradYears.map((y) => (
+                  <option key={y} value={String(y)}>
                     {y}
                   </option>
                 ))}

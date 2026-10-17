@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Menu, Zap } from 'lucide-react'
+import { Menu, UserPlus, Zap } from 'lucide-react'
 import { useScrollY } from '../hooks/useScrollY'
 
 const MotionLink = motion(Link)
@@ -64,6 +64,13 @@ export default function Navbar() {
               className="text-sm font-semibold text-teal transition-colors hover:text-teal-dark"
             >
               Sign up
+            </Link>
+            <Link
+              href="/auth/signup"
+              className="hidden items-center justify-center gap-2 rounded-full bg-blue px-5 py-2.5 text-sm font-semibold text-white shadow-[0_4px_12px_rgba(46,111,243,0.3)] transition-all duration-200 hover:bg-blue/90 sm:inline-flex"
+            >
+              <UserPlus size={15} />
+              Students
             </Link>
             <MotionLink
               href="/book"

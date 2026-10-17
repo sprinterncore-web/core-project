@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { isAdminUserId } from '@/lib/supabase/service'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -16,13 +17,7 @@ export async function GET(request: Request) {
       } = await supabaseClient.auth.getUser()
 
       if (user) {
-        const { data: adminCheck } = await supabaseClient
-          .from('admins')
-          .select('id')
-          .eq('id', user.id)
-          .maybeSingle()
-
-        if (adminCheck) {
+        if (await isAdminUserId(user.id)) {
           return NextResponse.redirect(`${origin}/admin`)
         }
 

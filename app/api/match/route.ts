@@ -1,22 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
+import { isAdminUserId } from '@/lib/supabase/service'
 import {
   generateAllMatchesForStudent,
   generateMatchScore,
 } from '@/lib/groq/match'
 import type { JobPosting, Profile } from '@/types/database'
 import { NextResponse } from 'next/server'
-
-async function isAdminUser(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string
-) {
-  const { data } = await supabase
-    .from('admins')
-    .select('id')
-    .eq('id', userId)
-    .single()
-  return !!data
-}
 
 export async function POST(request: Request) {
   try {
@@ -34,7 +23,7 @@ export async function POST(request: Request) {
     }
 
     if (targetStudentId) {
-      if (!(await isAdminUser(supabase, user.id))) {
+      if (!(await isAdminUserId(user.id))) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       }
 
@@ -87,7 +76,7 @@ export async function POST(request: Request) {
     }
 
     if (targetJobId) {
-      if (!(await isAdminUser(supabase, user.id))) {
+      if (!(await isAdminUserId(user.id))) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       }
 

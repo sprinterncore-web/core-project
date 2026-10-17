@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { isAdminUserId } from '@/lib/supabase/service'
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -29,6 +30,7 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  const isConfirmed = !!user?.email_confirmed_at
   const pathname = request.nextUrl.pathname
 
   const isPublicAdminRoute =
@@ -41,35 +43,42 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  if (!isConfirmed && pathname.startsWith('/dashboard')) {
+    return NextResponse.redirect(
+      new URL('/auth/login?error=email_not_confirmed', request.url)
+    )
+  }
+
+  if (!user && pathname.startsWith('/onboarding')) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/auth/login'
+    return NextResponse.redirect(url)
+  }
+
+  if (!isConfirmed && pathname.startsWith('/onboarding')) {
+    return NextResponse.redirect(
+      new URL('/auth/login?error=email_not_confirmed', request.url)
+    )
+  }
+
   if (!isPublicAdminRoute && pathname.startsWith('/admin')) {
     if (!user) {
       return NextResponse.redirect(new URL('/admin/login', request.url))
     }
 
-    const { data: adminCheck } = await supabase
-      .from('admins')
-      .select('id')
-      .eq('id', user.id)
-      .maybeSingle()
-
-    if (!adminCheck) {
+    if (!(await isAdminUserId(user.id))) {
       return NextResponse.redirect(new URL('/admin/login', request.url))
     }
   }
 
   if (
     user &&
+    isConfirmed &&
     (pathname.startsWith('/auth/login') ||
       pathname.startsWith('/auth/signup'))
   ) {
-    const { data: adminCheck } = await supabase
-      .from('admins')
-      .select('id')
-      .eq('id', user.id)
-      .maybeSingle()
-
     const url = request.nextUrl.clone()
-    if (adminCheck) {
+    if (await isAdminUserId(user.id)) {
       url.pathname = '/admin/students'
       return NextResponse.redirect(url)
     }

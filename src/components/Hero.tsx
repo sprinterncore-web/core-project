@@ -1,7 +1,8 @@
 'use client'
 
+import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { ArrowDown, CalendarCheck, Zap } from 'lucide-react'
+import { ArrowDown, CalendarCheck, GraduationCap, Zap } from 'lucide-react'
 import { useReducedMotion } from '../hooks/useReducedMotion'
 
 const container = {
@@ -99,6 +100,15 @@ export default function Hero() {
             <ArrowDown size={16} />
             See How It Works
           </motion.a>
+          <motion.div whileHover={{ scale: 1.03 }}>
+            <Link
+              href="/auth/signup"
+              className="inline-flex items-center gap-2 rounded-full bg-blue px-8 py-4 text-sm font-semibold text-white shadow-[0_4px_16px_rgba(46,111,243,0.3)] transition-all hover:bg-blue/90"
+            >
+              <GraduationCap size={16} />
+              Sign Up as Student →
+            </Link>
+          </motion.div>
         </motion.div>
 
         <motion.p

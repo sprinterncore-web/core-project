@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, Loader2, Zap } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { verifyCurrentUserIsAdmin } from '@/lib/actions/verify-admin'
 
 export default function AdminLoginPage() {
   const router = useRouter()
@@ -40,13 +41,9 @@ export default function AdminLoginPage() {
       return
     }
 
-    const { data: adminRow } = await supabase
-      .from('admins')
-      .select('id, role')
-      .eq('id', data.user.id)
-      .single()
+    const isAdmin = await verifyCurrentUserIsAdmin()
 
-    if (!adminRow) {
+    if (!isAdmin) {
       await supabase.auth.signOut()
       setError(
         'Access denied. This account is not authorised for the master panel.'

@@ -4,9 +4,10 @@ import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, Loader2, MailWarning } from 'lucide-react'
 import { AuthLeftPanel } from '@/components/auth/AuthLeftPanel'
 import { createClient } from '@/lib/supabase/client'
+import { verifyCurrentUserIsAdmin } from '@/lib/actions/verify-admin'
 
 function GoogleIcon() {
   return (
@@ -34,6 +35,7 @@ function GoogleIcon() {
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const errorParam = searchParams.get('error')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -65,13 +67,16 @@ function LoginForm() {
     }
 
     if (data.user) {
-      const { data: adminRow } = await supabase
-        .from('admins')
-        .select('id')
-        .eq('id', data.user.id)
-        .single()
+      if (!data.user.email_confirmed_at) {
+        await supabase.auth.signOut()
+        setError(
+          'Please confirm your email before logging in. Check your inbox for the verification link.'
+        )
+        setLoading(false)
+        return
+      }
 
-      if (adminRow) {
+      if (await verifyCurrentUserIsAdmin()) {
         router.refresh()
         router.push('/admin')
       } else {
@@ -116,7 +121,20 @@ function LoginForm() {
         </Link>
       </p>
 
-      <form onSubmit={handleLogin} className="mt-8 flex flex-col gap-4">
+      {errorParam === 'email_not_confirmed' ? (
+        <div className="mb-4 mt-8 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <MailWarning size={16} className="flex-shrink-0" />
+          <span>
+            Please verify your email before logging in. Check your inbox for
+            the confirmation link.
+          </span>
+        </div>
+      ) : null}
+
+      <form
+        onSubmit={handleLogin}
+        className={`flex flex-col gap-4 ${errorParam === 'email_not_confirmed' ? 'mt-0' : 'mt-8'}`}
+      >
         <input
           required
           type="email"

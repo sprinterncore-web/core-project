@@ -11,15 +11,29 @@ create table if not exists public.admins (
 
 alter table public.admins enable row level security;
 
--- Admins can read the full list (for admin panel)
-create policy "Admins can view admin list"
-  on public.admins for select
-  using (auth.uid() in (select id from public.admins));
+create or replace function public.is_admin()
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1 from public.admins where id = auth.uid()
+  );
+$$;
 
--- Required for login/callback: user can read their own row to detect admin role
+revoke all on function public.is_admin() from public;
+grant execute on function public.is_admin() to authenticated;
+grant execute on function public.is_admin() to anon;
+
 create policy "Users can read own admin record"
   on public.admins for select
   using (auth.uid() = id);
+
+create policy "Admins can view admin list"
+  on public.admins for select
+  using (public.is_admin());
 
 -- ─────────────────────────────────────────────
 -- COMPANIES TABLE
@@ -58,7 +72,7 @@ alter table public.companies enable row level security;
 -- Only admins can do anything with companies
 create policy "Admins can manage companies"
   on public.companies for all
-  using (auth.uid() in (select id from public.admins));
+  using (public.is_admin());
 
 -- ─────────────────────────────────────────────
 -- UPDATE JOB POSTINGS TABLE — add company reference
@@ -84,19 +98,19 @@ on conflict (email) do nothing;
 -- ─────────────────────────────────────────────
 create policy "Admins can view all profiles"
   on public.profiles for select
-  using (auth.uid() in (select id from public.admins));
+  using (public.is_admin());
 
 create policy "Admins can update all profiles"
   on public.profiles for update
-  using (auth.uid() in (select id from public.admins));
+  using (public.is_admin());
 
 create policy "Admins can manage job postings"
   on public.job_postings for all
-  using (auth.uid() in (select id from public.admins));
+  using (public.is_admin());
 
 create policy "Admins can manage match results"
   on public.match_results for all
-  using (auth.uid() in (select id from public.admins));
+  using (public.is_admin());
 
 create policy "Students can upsert own match results"
   on public.match_results for insert

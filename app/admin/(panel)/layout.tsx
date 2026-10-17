@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { isAdminUserId } from '@/lib/supabase/service'
 import { redirect } from 'next/navigation'
 
 export default async function AdminPanelLayout({
@@ -13,13 +14,7 @@ export default async function AdminPanelLayout({
 
   if (!user) redirect('/admin/login')
 
-  const { data: adminCheck } = await supabase
-    .from('admins')
-    .select('id')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  if (!adminCheck) redirect('/admin/login')
+  if (!(await isAdminUserId(user.id))) redirect('/admin/login')
 
   return <div className="flex min-h-screen bg-canvas">{children}</div>
 }

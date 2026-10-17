@@ -31,6 +31,13 @@ export default function DashboardPage() {
         router.replace('/auth/login')
         return
       }
+
+      if (!authUser.email_confirmed_at) {
+        await supabase.auth.signOut()
+        router.replace('/auth/login?error=email_not_confirmed')
+        return
+      }
+
       setUser(authUser)
       const prof = await getProfile(authUser.id)
       setProfile(prof)
