@@ -15,7 +15,12 @@ type Props = {
   companyName: string
   companyInitial: string
   companyStage: string
-  onSubmit: (data: Omit<JobPosting, 'id' | 'created_at' | 'company'>) => Promise<void>
+  onSubmit: (
+    data: Omit<
+      JobPosting,
+      'id' | 'created_at' | 'company' | 'deleted' | 'deleted_at'
+    >
+  ) => Promise<void>
   isLoading: boolean
   submitLabel: string
   cancelHref?: string

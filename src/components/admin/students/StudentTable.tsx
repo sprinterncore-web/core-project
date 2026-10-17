@@ -21,6 +21,8 @@ type Props = {
   searchQuery: string
   statusFilter: string
   roleFilter: string
+  onDelete?: (student: Profile) => void
+  onRestore?: (studentId: string) => void
 }
 
 export function StudentTable({
@@ -28,6 +30,8 @@ export function StudentTable({
   searchQuery,
   statusFilter,
   roleFilter,
+  onDelete,
+  onRestore,
 }: Props) {
   const q = searchQuery.trim().toLowerCase()
   const filtered = students.filter((s) => {
@@ -80,10 +84,13 @@ export function StudentTable({
             const step = s.onboarding_step ?? 0
             const pct = Math.min(100, (step / 4) * 100)
             const skills = s.skills ?? []
+            const isDeleted = s.deleted === true
             return (
               <tr
                 key={s.id}
-                className="border-b border-line transition-colors last:border-0 hover:bg-canvas"
+                className={`border-b border-line transition-colors last:border-0 hover:bg-canvas ${
+                  isDeleted ? 'bg-red-50/30' : ''
+                }`}
               >
                 <td className="px-5 py-4">
                   <div className="flex items-center gap-3">
@@ -143,12 +150,35 @@ export function StudentTable({
                   {formatDate(s.created_at)}
                 </td>
                 <td className="px-5 py-4">
+                  {isDeleted ? (
+                    <span className="mr-2 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-600">
+                      Deleted
+                    </span>
+                  ) : null}
                   <Link
                     href={`/admin/students/${s.id}`}
                     className="text-sm font-semibold text-blue hover:underline"
                   >
                     View →
                   </Link>
+                  {isDeleted && onRestore ? (
+                    <button
+                      type="button"
+                      onClick={() => onRestore(s.id)}
+                      className="ml-3 text-sm font-semibold text-teal"
+                    >
+                      Restore
+                    </button>
+                  ) : null}
+                  {!isDeleted && onDelete ? (
+                    <button
+                      type="button"
+                      onClick={() => onDelete(s)}
+                      className="ml-3 text-sm font-semibold text-red-500"
+                    >
+                      Delete
+                    </button>
+                  ) : null}
                 </td>
               </tr>
             )

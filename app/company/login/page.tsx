@@ -1,12 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { CompanyAuthLeftPanel } from '@/components/company/CompanyAuthLeftPanel'
 import { createClient } from '@/lib/supabase/client'
+import { isTestingMode } from '@/lib/testing'
+import { TestingBanner } from '@/components/ui/TestingBanner'
 
 function GoogleIcon() {
   return (
@@ -38,6 +40,12 @@ export default function CompanyLoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [testingMode, setTestingMode] = useState(false)
+  const [showTesting, setShowTesting] = useState(false)
+
+  useEffect(() => {
+    setShowTesting(isTestingMode())
+  }, [])
 
   async function handleGoogle() {
     const supabase = createClient()
@@ -65,24 +73,26 @@ export default function CompanyLoginPage() {
       return
     }
 
-    if (!data.user?.email_confirmed_at) {
+    if (!testingMode && !data.user?.email_confirmed_at) {
       await supabase.auth.signOut()
       setError('Please confirm your email before logging in.')
       setLoading(false)
       return
     }
 
-    const { data: companyUser } = await supabase
-      .from('company_users')
-      .select('id, company_id')
-      .eq('id', data.user.id)
-      .maybeSingle()
+    if (!testingMode) {
+      const { data: companyUser } = await supabase
+        .from('company_users')
+        .select('id, company_id')
+        .eq('id', data.user.id)
+        .maybeSingle()
 
-    if (!companyUser) {
-      await supabase.auth.signOut()
-      setError('No company account found. Are you a student?')
-      setLoading(false)
-      return
+      if (!companyUser) {
+        await supabase.auth.signOut()
+        setError('No company account found. Are you a student?')
+        setLoading(false)
+        return
+      }
     }
 
     router.refresh()
@@ -95,6 +105,9 @@ export default function CompanyLoginPage() {
       <CompanyAuthLeftPanel />
       <div className="lg:ml-[50%]">
         <div className="mx-auto max-w-sm px-6 py-16">
+          {showTesting ? (
+            <TestingBanner enabled={testingMode} onChange={setTestingMode} />
+          ) : null}
           <h1 className="text-2xl font-bold text-navy">Welcome back</h1>
           <p className="mt-2 text-sm text-slate">
             Don&apos;t have an account?{' '}
@@ -102,6 +115,12 @@ export default function CompanyLoginPage() {
               Sign up free
             </Link>
           </p>
+
+          {testingMode ? (
+            <p className="mt-2 text-center text-xs text-amber-600">
+              Testing: email confirmation skipped
+            </p>
+          ) : null}
 
           <form onSubmit={handleLogin} className="mt-8 flex flex-col gap-4">
             <input

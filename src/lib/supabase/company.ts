@@ -50,13 +50,18 @@ export async function getJobPostingById(
 }
 
 export async function submitJobPosting(
-  job: Omit<JobPosting, 'id' | 'created_at' | 'company'>
+  job: Omit<
+    JobPosting,
+    'id' | 'created_at' | 'company' | 'deleted' | 'deleted_at'
+  >
 ): Promise<{ id: string | null; error: string | null }> {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('job_postings')
     .insert({
       ...job,
+      deleted: false,
+      deleted_at: null,
       is_active: false,
       approval_status: 'pending',
       submitted_by: 'company',

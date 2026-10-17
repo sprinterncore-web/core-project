@@ -10,7 +10,10 @@ import type { Company, JobPosting, RoleType } from '@/types/database'
 const inputClass =
   'w-full rounded-xl border border-line bg-white px-4 py-3 text-sm text-navy focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/10'
 
-type JobFormValues = Omit<JobPosting, 'id' | 'created_at' | 'company'>
+type JobFormValues = Omit<
+  JobPosting,
+  'id' | 'created_at' | 'company' | 'deleted' | 'deleted_at'
+>
 
 type Props = {
   companies: Company[]

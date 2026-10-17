@@ -30,7 +30,6 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const isConfirmed = !!user?.email_confirmed_at
   const pathname = request.nextUrl.pathname
 
   const isPublicAdminRoute =
@@ -43,22 +42,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  if (!isConfirmed && pathname.startsWith('/dashboard')) {
-    return NextResponse.redirect(
-      new URL('/auth/login?error=email_not_confirmed', request.url)
-    )
-  }
-
   if (!user && pathname.startsWith('/onboarding')) {
     const url = request.nextUrl.clone()
     url.pathname = '/auth/login'
     return NextResponse.redirect(url)
-  }
-
-  if (!isConfirmed && pathname.startsWith('/onboarding')) {
-    return NextResponse.redirect(
-      new URL('/auth/login?error=email_not_confirmed', request.url)
-    )
   }
 
   if (!isPublicAdminRoute && pathname.startsWith('/admin')) {
@@ -74,14 +61,13 @@ export async function middleware(request: NextRequest) {
   if (
     (pathname.startsWith('/company/dashboard') ||
       pathname.startsWith('/company/jobs')) &&
-    (!user || !isConfirmed)
+    !user
   ) {
     return NextResponse.redirect(new URL('/company/login', request.url))
   }
 
   if (
     user &&
-    isConfirmed &&
     (pathname === '/company/login' || pathname === '/company/signup')
   ) {
     return NextResponse.redirect(
@@ -91,7 +77,6 @@ export async function middleware(request: NextRequest) {
 
   if (
     user &&
-    isConfirmed &&
     (pathname.startsWith('/auth/login') ||
       pathname.startsWith('/auth/signup'))
   ) {

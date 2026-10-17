@@ -1,11 +1,18 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { CheckCircle2, Clock, Users, Zap } from 'lucide-react'
 import { AdminShell } from '@/components/admin/AdminShell'
 import { StudentTable } from '@/components/admin/students/StudentTable'
+import { DeleteConfirmModal } from '@/components/ui/DeleteConfirmModal'
 import { StatCard } from '@/components/ui/StatCard'
-import { getAllStudents } from '@/lib/supabase/admin'
+import { Toast } from '@/components/ui/Toast'
+import { useToast } from '@/hooks/useToast'
+import {
+  getAllStudents,
+  restoreStudent,
+  softDeleteStudent,
+} from '@/lib/supabase/admin'
 import type { Profile } from '@/types/database'
 
 export default function AdminStudentsPage() {
@@ -13,17 +20,30 @@ export default function AdminStudentsPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
   const [roleFilter, setRoleFilter] = useState('All')
+  const [showDeleted, setShowDeleted] = useState(false)
+  const [deleteModal, setDeleteModal] = useState<{
+    open: boolean
+    studentId: string | null
+    studentName: string
+  }>({ open: false, studentId: null, studentName: '' })
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const { toast, showToast, hideToast } = useToast()
+
+  const refresh = useCallback(() => {
+    getAllStudents(showDeleted).then(setStudents)
+  }, [showDeleted])
 
   useEffect(() => {
-    getAllStudents().then(setStudents)
-  }, [])
+    refresh()
+  }, [refresh])
 
   const stats = useMemo(() => {
+    const active = students.filter((s) => !s.deleted)
     return {
-      total: students.length,
-      complete: students.filter((s) => s.onboarding_complete).length,
-      pending: students.filter((s) => s.profile_status === 'pending').length,
-      active: students.filter((s) => s.profile_status === 'active').length,
+      total: active.length,
+      complete: active.filter((s) => s.onboarding_complete).length,
+      pending: active.filter((s) => s.profile_status === 'pending').length,
+      activeSprint: active.filter((s) => s.profile_status === 'active').length,
     }
   }, [students])
 
@@ -50,7 +70,7 @@ export default function AdminStudentsPage() {
         />
         <StatCard
           label="Active Sprints"
-          value={stats.active}
+          value={stats.activeSprint}
           icon={Zap}
           iconColor="text-teal"
         />
@@ -85,6 +105,14 @@ export default function AdminStudentsPage() {
             </option>
           ))}
         </select>
+        <label className="flex items-center gap-2 text-sm text-slate">
+          <input
+            type="checkbox"
+            checked={showDeleted}
+            onChange={(e) => setShowDeleted(e.target.checked)}
+          />
+          Show deleted accounts
+        </label>
       </div>
 
       <StudentTable
@@ -92,7 +120,40 @@ export default function AdminStudentsPage() {
         searchQuery={search}
         statusFilter={statusFilter}
         roleFilter={roleFilter}
+        onDelete={(student) =>
+          setDeleteModal({
+            open: true,
+            studentId: student.id,
+            studentName: student.full_name ?? student.email,
+          })
+        }
+        onRestore={async (id) => {
+          await restoreStudent(id)
+          showToast('Student restored', 'success')
+          refresh()
+        }}
       />
+
+      <DeleteConfirmModal
+        isOpen={deleteModal.open}
+        onClose={() =>
+          setDeleteModal({ open: false, studentId: null, studentName: '' })
+        }
+        onConfirm={async () => {
+          if (!deleteModal.studentId) return
+          setDeleteLoading(true)
+          await softDeleteStudent(deleteModal.studentId)
+          setDeleteModal({ open: false, studentId: null, studentName: '' })
+          setDeleteLoading(false)
+          showToast('Student deleted', 'success')
+          refresh()
+        }}
+        title={`Delete ${deleteModal.studentName}?`}
+        description="This will remove the student from the active pool and hide them from all views. Their data is preserved."
+        isLoading={deleteLoading}
+      />
+
+      <Toast {...toast} onHide={hideToast} />
     </AdminShell>
   )
 }

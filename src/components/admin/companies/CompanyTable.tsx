@@ -8,9 +8,17 @@ type Props = {
   companies: Company[]
   search: string
   onToggleAccess: (id: string, access: boolean) => void
+  onDelete?: (company: Company) => void
+  onRestore?: (companyId: string) => void
 }
 
-export function CompanyTable({ companies, search, onToggleAccess }: Props) {
+export function CompanyTable({
+  companies,
+  search,
+  onToggleAccess,
+  onDelete,
+  onRestore,
+}: Props) {
   const q = search.trim().toLowerCase()
   const filtered = companies.filter((c) => {
     if (!q) return true
@@ -51,10 +59,14 @@ export function CompanyTable({ companies, search, onToggleAccess }: Props) {
           </tr>
         </thead>
         <tbody>
-          {filtered.map((c) => (
+          {filtered.map((c) => {
+            const isDeleted = c.deleted === true
+            return (
             <tr
               key={c.id}
-              className="border-b border-line last:border-0 hover:bg-canvas"
+              className={`border-b border-line last:border-0 hover:bg-canvas ${
+                isDeleted ? 'bg-red-50/30' : ''
+              }`}
             >
               <td className="px-5 py-4">
                 <div className="flex items-center gap-3">
@@ -105,15 +117,38 @@ export function CompanyTable({ companies, search, onToggleAccess }: Props) {
                 />
               </td>
               <td className="px-5 py-4">
+                {isDeleted ? (
+                  <span className="mr-2 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-600">
+                    Deleted
+                  </span>
+                ) : null}
                 <Link
                   href={`/admin/companies/${c.id}`}
                   className="text-sm font-semibold text-blue hover:underline"
                 >
                   Edit →
                 </Link>
+                {isDeleted && onRestore ? (
+                  <button
+                    type="button"
+                    onClick={() => onRestore(c.id)}
+                    className="ml-3 text-sm font-semibold text-teal"
+                  >
+                    Restore
+                  </button>
+                ) : null}
+                {!isDeleted && onDelete ? (
+                  <button
+                    type="button"
+                    onClick={() => onDelete(c)}
+                    className="ml-3 text-sm font-semibold text-red-500"
+                  >
+                    Delete
+                  </button>
+                ) : null}
               </td>
             </tr>
-          ))}
+          )})}
         </tbody>
       </table>
     </div>

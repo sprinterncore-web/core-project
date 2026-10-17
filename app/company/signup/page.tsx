@@ -1,11 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Building2, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { CompanyAuthLeftPanel } from '@/components/company/CompanyAuthLeftPanel'
 import { createClient } from '@/lib/supabase/client'
+import { isTestingMode } from '@/lib/testing'
+import { TestingBanner } from '@/components/ui/TestingBanner'
 
 function GoogleIcon() {
   return (
@@ -49,6 +51,13 @@ export default function CompanySignupPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [testingMode, setTestingMode] = useState(false)
+  const [showTesting, setShowTesting] = useState(false)
+  const [modifiedEmail, setModifiedEmail] = useState<string | null>(null)
+
+  useEffect(() => {
+    setShowTesting(isTestingMode())
+  }, [])
 
   async function handleGoogle() {
     const supabase = createClient()
@@ -65,30 +74,61 @@ export default function CompanySignupPage() {
     setLoading(true)
     setError(null)
 
-    const emailDomain = email.split('@')[1]?.toLowerCase()
-    if (personalDomains.includes(emailDomain ?? '')) {
-      setError(
-        'Please use your company work email, not a personal email address.'
-      )
-      setLoading(false)
-      return
+    if (!testingMode) {
+      const emailDomain = email.split('@')[1]?.toLowerCase()
+      if (personalDomains.includes(emailDomain ?? '')) {
+        setError('Please use your company work email.')
+        setLoading(false)
+        return
+      }
     }
 
     const supabase = createClient()
-    const { data, error: signUpError } = await supabase.auth.signUp({
-      email,
+    const signUpOptions = {
+      emailRedirectTo: `${window.location.origin}/company/callback`,
+      data: {
+        full_name: fullName,
+        title,
+        company_name: companyName,
+        website,
+        account_type: 'company',
+      },
+    }
+
+    let signupEmail = email
+    let { data, error: signUpError } = await supabase.auth.signUp({
+      email: signupEmail,
       password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/company/callback`,
-        data: {
+      options: signUpOptions,
+    })
+
+    if (
+      signUpError?.message?.toLowerCase().includes('already registered') &&
+      testingMode
+    ) {
+      const timestamp = Date.now().toString().slice(-4)
+      signupEmail = email.replace('@', `+test${timestamp}@`)
+      const retry = await supabase.auth.signUp({
+        email: signupEmail,
+        password,
+        options: signUpOptions,
+      })
+      data = retry.data
+      signUpError = retry.error
+      if (!retry.error && retry.data.user) {
+        await supabase.from('company_users').insert({
+          id: retry.data.user.id,
+          email: signupEmail,
           full_name: fullName,
           title,
-          company_name: companyName,
-          website,
-          account_type: 'company',
-        },
-      },
-    })
+          company_id: null,
+        })
+        setModifiedEmail(signupEmail)
+        setSuccess(true)
+        setLoading(false)
+        return
+      }
+    }
 
     if (signUpError) {
       setError(signUpError.message)
@@ -99,7 +139,7 @@ export default function CompanySignupPage() {
     if (data.user) {
       await supabase.from('company_users').insert({
         id: data.user.id,
-        email,
+        email: signupEmail,
         full_name: fullName,
         title,
         company_id: null,
@@ -109,7 +149,7 @@ export default function CompanySignupPage() {
         type: 'new_company_signup',
         title: 'New company signed up',
         body: `${fullName} from ${companyName} created an account.`,
-        metadata: { email, company_name: companyName, website },
+        metadata: { email: signupEmail, company_name: companyName, website },
       })
     }
 
@@ -122,6 +162,9 @@ export default function CompanySignupPage() {
       <CompanyAuthLeftPanel />
       <div className="lg:ml-[50%]">
         <div className="mx-auto max-w-sm px-6 py-16">
+          {showTesting ? (
+            <TestingBanner enabled={testingMode} onChange={setTestingMode} />
+          ) : null}
           <h1 className="text-2xl font-bold text-navy">
             Create your company account
           </h1>
@@ -170,6 +213,11 @@ export default function CompanySignupPage() {
               >
                 Don&apos;t want to wait? Book your intro call now →
               </Link>
+              {modifiedEmail ? (
+                <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-600">
+                  Testing mode: account created as {modifiedEmail}
+                </p>
+              ) : null}
             </div>
           ) : (
             <form onSubmit={handleSignup} className="mt-8 flex flex-col gap-4">
@@ -208,6 +256,11 @@ export default function CompanySignupPage() {
                 <p className="mt-1 text-xs text-slate/60">
                   Use your company email address
                 </p>
+                {testingMode ? (
+                  <p className="mt-1 text-xs text-amber-600">
+                    Testing: personal emails accepted
+                  </p>
+                ) : null}
               </div>
               <div className="relative">
                 <input

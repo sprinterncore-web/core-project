@@ -1,11 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, Loader2, MailCheck } from 'lucide-react'
 import { AuthLeftPanel } from '@/components/auth/AuthLeftPanel'
 import { createClient } from '@/lib/supabase/client'
+import { isTestingMode } from '@/lib/testing'
+import { TestingBanner } from '@/components/ui/TestingBanner'
 
 function GoogleIcon() {
   return (
@@ -43,6 +45,13 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [resendSent, setResendSent] = useState(false)
+  const [testingMode, setTestingMode] = useState(false)
+  const [showTesting, setShowTesting] = useState(false)
+  const [modifiedEmail, setModifiedEmail] = useState<string | null>(null)
+
+  useEffect(() => {
+    setShowTesting(isTestingMode())
+  }, [])
 
   const currentYear = new Date().getFullYear()
   const gradYears = Array.from({ length: 7 }, (_, i) => currentYear - 2 + i)
@@ -65,38 +74,63 @@ export default function SignupPage() {
     setLoading(true)
     setError(null)
 
-    if (!email.toLowerCase().endsWith('.edu')) {
+    if (!testingMode && !email.toLowerCase().endsWith('.edu')) {
       setError('A university .edu email address is required to sign up.')
       setLoading(false)
       return
     }
 
-    const gradYearNum = parseInt(gradYear, 10)
-    const minYear = currentYear - 2
-    const maxYear = currentYear + 4
-
-    if (gradYearNum < minYear || gradYearNum > maxYear) {
-      setError(
-        `Access is available from your freshman year until 2 years after graduation. Valid graduation years: ${minYear}–${maxYear}.`
-      )
-      setLoading(false)
-      return
+    if (!testingMode) {
+      const gradYearNum = parseInt(gradYear, 10)
+      const minYear = currentYear - 2
+      const maxYear = currentYear + 4
+      if (gradYearNum < minYear || gradYearNum > maxYear) {
+        setError(
+          `Access is available from your freshman year until 2 years after graduation. Valid graduation years: ${minYear}–${maxYear}.`
+        )
+        setLoading(false)
+        return
+      }
     }
 
     const supabase = createClient()
-    const { data, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-        data: {
-          full_name: `${firstName} ${lastName}`,
-          university,
-          major,
-          graduation_year: parseInt(gradYear, 10),
-        },
+    const signUpOptions = {
+      emailRedirectTo: `${window.location.origin}/auth/callback`,
+      data: {
+        full_name: `${firstName} ${lastName}`,
+        university,
+        major,
+        graduation_year: parseInt(gradYear, 10),
       },
+    }
+
+    let signupEmail = email
+    let { data, error: signUpError } = await supabase.auth.signUp({
+      email: signupEmail,
+      password,
+      options: signUpOptions,
     })
+
+    if (
+      signUpError?.message?.toLowerCase().includes('already registered') &&
+      testingMode
+    ) {
+      const timestamp = Date.now().toString().slice(-4)
+      signupEmail = email.replace('@', `+test${timestamp}@`)
+      const retry = await supabase.auth.signUp({
+        email: signupEmail,
+        password,
+        options: signUpOptions,
+      })
+      data = retry.data
+      signUpError = retry.error
+      if (!retry.error) {
+        setModifiedEmail(signupEmail)
+        setSuccess(true)
+        setLoading(false)
+        return
+      }
+    }
 
     if (signUpError) {
       setError(signUpError.message)
@@ -126,6 +160,9 @@ export default function SignupPage() {
 
       <div className="lg:ml-[50%]">
         <div className="mx-auto max-w-sm px-6 py-16">
+          {showTesting ? (
+            <TestingBanner enabled={testingMode} onChange={setTestingMode} />
+          ) : null}
           <h1 className="text-2xl font-bold text-navy">Create your account</h1>
           <p className="mt-2 text-sm text-slate">
             Already have an account?{' '}
@@ -185,6 +222,11 @@ export default function SignupPage() {
               {resendSent ? (
                 <p className="mt-2 text-xs text-teal">Sent! Check your inbox.</p>
               ) : null}
+              {modifiedEmail ? (
+                <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-600">
+                  Testing mode: account created as {modifiedEmail}
+                </p>
+              ) : null}
             </div>
           ) : (
             <form
@@ -220,6 +262,11 @@ export default function SignupPage() {
                 <p className="mt-1 text-xs text-slate/60">
                   University .edu email required (e.g. yourname@berkeley.edu)
                 </p>
+                {testingMode ? (
+                  <p className="mt-1 text-xs text-amber-600">
+                    Testing: any email format accepted
+                  </p>
+                ) : null}
               </div>
 
               <div className="relative">

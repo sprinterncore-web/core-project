@@ -38,6 +38,8 @@ export const DUMMY_MATCHES: MatchResult[] = [
       approval_status: 'approved',
       submitted_by: 'admin',
       rejection_reason: null,
+      deleted: false,
+      deleted_at: null,
     },
   },
   {
@@ -77,6 +79,8 @@ export const DUMMY_MATCHES: MatchResult[] = [
       approval_status: 'approved',
       submitted_by: 'admin',
       rejection_reason: null,
+      deleted: false,
+      deleted_at: null,
     },
   },
   {
@@ -115,6 +119,8 @@ export const DUMMY_MATCHES: MatchResult[] = [
       approval_status: 'approved',
       submitted_by: 'admin',
       rejection_reason: null,
+      deleted: false,
+      deleted_at: null,
     },
   },
   {
@@ -148,6 +154,8 @@ export const DUMMY_MATCHES: MatchResult[] = [
       approval_status: 'approved',
       submitted_by: 'admin',
       rejection_reason: null,
+      deleted: false,
+      deleted_at: null,
     },
   },
 ]

@@ -8,6 +8,7 @@ import { FilterBar } from '@/components/dashboard/FilterBar'
 import { MatchCard } from '@/components/dashboard/MatchCard'
 import { MatchSidebar } from '@/components/dashboard/MatchSidebar'
 import { createClient } from '@/lib/supabase/client'
+import { isTestingMode } from '@/lib/testing'
 import { getProfile } from '@/lib/supabase/profile'
 import { getMatchesForStudent } from '@/lib/supabase/matches'
 import type { MatchResult, Profile } from '@/types/database'
@@ -32,7 +33,7 @@ export default function DashboardPage() {
         return
       }
 
-      if (!authUser.email_confirmed_at) {
+      if (!isTestingMode() && !authUser.email_confirmed_at) {
         await supabase.auth.signOut()
         router.replace('/auth/login?error=email_not_confirmed')
         return

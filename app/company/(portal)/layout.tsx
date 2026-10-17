@@ -12,9 +12,6 @@ export default async function CompanyPortalLayout({
   } = await supabase.auth.getUser()
 
   if (!user) redirect('/company/login')
-  if (!user.email_confirmed_at) {
-    redirect('/company/login?error=email_not_confirmed')
-  }
 
   const { data: companyUser } = await supabase
     .from('company_users')

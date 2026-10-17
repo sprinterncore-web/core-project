@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { AdminShell } from '@/components/admin/AdminShell'
 import { JobForm } from '@/components/admin/jobs/JobForm'
+import { DeleteConfirmModal } from '@/components/ui/DeleteConfirmModal'
 import {
   getAllCompanies,
   getJobMatches,
+  softDeleteJobPosting,
   updateJobPosting,
 } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/client'
@@ -16,7 +18,10 @@ import type { JobPosting } from '@/types/database'
 
 export default function EditJobPage() {
   const params = useParams()
+  const router = useRouter()
   const id = String(params.id)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteLoading, setDeleteLoading] = useState(false)
   const [job, setJob] = useState<JobPosting | null>(null)
   const [companies, setCompanies] = useState<Awaited<ReturnType<typeof getAllCompanies>>>([])
   const [matches, setMatches] = useState<
@@ -86,6 +91,13 @@ export default function EditJobPage() {
             else setError(null)
           }}
         />
+        <button
+          type="button"
+          onClick={() => setDeleteOpen(true)}
+          className="mt-4 w-full rounded-full border border-red-200 py-2.5 text-sm font-semibold text-red-500"
+        >
+          Delete Listing
+        </button>
       </div>
 
       <section className="mt-12 rounded-2xl border border-line bg-white p-6">
@@ -124,6 +136,21 @@ export default function EditJobPage() {
           ))
         )}
       </section>
+
+      <DeleteConfirmModal
+        isOpen={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={async () => {
+          setDeleteLoading(true)
+          await softDeleteJobPosting(id)
+          setDeleteLoading(false)
+          setDeleteOpen(false)
+          router.push('/admin/jobs')
+        }}
+        title="Delete this job listing?"
+        description="Removes it from student view and stops new matches. Existing match data is preserved."
+        isLoading={deleteLoading}
+      />
     </AdminShell>
   )
 }

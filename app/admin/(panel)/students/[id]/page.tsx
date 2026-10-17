@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { AdminShell } from '@/components/admin/AdminShell'
+import { DeleteConfirmModal } from '@/components/ui/DeleteConfirmModal'
 import { Toast } from '@/components/ui/Toast'
-import { getStudentMatches } from '@/lib/supabase/admin'
+import { getStudentMatches, softDeleteStudent } from '@/lib/supabase/admin'
 import { getProfile, updateProfile } from '@/lib/supabase/profile'
 import { initials } from '@/lib/format'
 import type { Profile, ProfileStatus } from '@/types/database'
@@ -15,6 +16,7 @@ const STEPS = ['Profile', 'Experience', 'Skills', 'AI Match']
 
 export default function AdminStudentDetailPage() {
   const params = useParams()
+  const router = useRouter()
   const id = String(params.id)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [matches, setMatches] = useState<
@@ -30,9 +32,11 @@ export default function AdminStudentDetailPage() {
   const [matching, setMatching] = useState(false)
   const [toast, setToast] = useState<{
     message: string
-    type: 'success' | 'error'
+    type: 'success' | 'error' | 'warning'
     visible: boolean
   }>({ message: '', type: 'success', visible: false })
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteLoading, setDeleteLoading] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -94,7 +98,6 @@ export default function AdminStudentDetailPage() {
 
   return (
     <AdminShell title="Student Profile">
-      <Toast {...toast} />
       <Link
         href="/admin/students"
         className="text-sm font-medium text-blue hover:underline"
@@ -223,6 +226,13 @@ export default function AdminStudentDetailPage() {
             >
               Update Status
             </button>
+            <button
+              type="button"
+              onClick={() => setDeleteOpen(true)}
+              className="mt-4 w-full rounded-full border border-red-200 py-2.5 text-sm font-semibold text-red-500"
+            >
+              Delete Account
+            </button>
           </div>
 
           <div className="rounded-2xl border border-line bg-white p-6">
@@ -249,6 +259,28 @@ export default function AdminStudentDetailPage() {
           </div>
         </div>
       </div>
+
+      <DeleteConfirmModal
+        isOpen={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={async () => {
+          setDeleteLoading(true)
+          await softDeleteStudent(id)
+          setDeleteLoading(false)
+          setDeleteOpen(false)
+          router.push('/admin/students')
+        }}
+        title={`Delete ${profile?.full_name ?? profile?.email ?? 'student'}?`}
+        description="This will remove the student from the active pool and hide them from all views. Their data is preserved."
+        isLoading={deleteLoading}
+      />
+
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        visible={toast.visible}
+        onHide={() => setToast((t) => ({ ...t, visible: false }))}
+      />
     </AdminShell>
   )
 }

@@ -1,16 +1,20 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Briefcase, DollarSign, Plus, Sparkles, Zap } from 'lucide-react'
 import { AdminShell } from '@/components/admin/AdminShell'
 import { JobTable } from '@/components/admin/jobs/JobTable'
+import { DeleteConfirmModal } from '@/components/ui/DeleteConfirmModal'
 import { StatCard } from '@/components/ui/StatCard'
+import { Toast } from '@/components/ui/Toast'
+import { useToast } from '@/hooks/useToast'
 import {
-  deleteJobPosting,
   getAllJobPostings,
   getMatchCountsByJob,
   getPendingJobPostings,
+  restoreJobPosting,
+  softDeleteJobPosting,
   updateJobPosting,
 } from '@/lib/supabase/admin'
 import type { JobPosting } from '@/types/database'
@@ -25,16 +29,23 @@ export default function AdminJobsPage() {
   const [listTab, setListTab] = useState<'all' | 'pending'>('all')
   const [rejectingId, setRejectingId] = useState<string | null>(null)
   const [rejectReason, setRejectReason] = useState('')
+  const [showDeleted, setShowDeleted] = useState(false)
+  const [deleteModal, setDeleteModal] = useState<{
+    open: boolean
+    jobId: string | null
+  }>({ open: false, jobId: null })
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const { toast, showToast, hideToast } = useToast()
 
-  async function refresh() {
-    setJobs(await getAllJobPostings())
+  const refresh = useCallback(async () => {
+    setJobs(await getAllJobPostings(showDeleted))
     setPending(await getPendingJobPostings())
     setMatchCounts(await getMatchCountsByJob())
-  }
+  }, [showDeleted])
 
   useEffect(() => {
     refresh()
-  }, [])
+  }, [refresh])
 
   const companies = useMemo(
     () => Array.from(new Set(jobs.map((j) => j.company_name))).sort(),
@@ -60,11 +71,6 @@ export default function AdminJobsPage() {
 
   async function toggleActive(id: string, active: boolean) {
     await updateJobPosting(id, { is_active: active })
-    refresh()
-  }
-
-  async function deactivate(id: string) {
-    await deleteJobPosting(id)
     refresh()
   }
 
@@ -236,6 +242,14 @@ export default function AdminJobsPage() {
               </option>
             ))}
           </select>
+          <label className="flex items-center gap-2 text-sm text-slate">
+            <input
+              type="checkbox"
+              checked={showDeleted}
+              onChange={(e) => setShowDeleted(e.target.checked)}
+            />
+            Show deleted listings
+          </label>
         </div>
         <Link
           href="/admin/jobs/new"
@@ -253,8 +267,32 @@ export default function AdminJobsPage() {
         companyFilter={companyFilter}
         roleFilter={roleFilter}
         onToggleActive={toggleActive}
-        onDeactivate={deactivate}
+        onDelete={(job) => setDeleteModal({ open: true, jobId: job.id })}
+        onRestore={async (id) => {
+          await restoreJobPosting(id)
+          showToast('Job listing restored', 'success')
+          refresh()
+        }}
       />
+
+      <DeleteConfirmModal
+        isOpen={deleteModal.open}
+        onClose={() => setDeleteModal({ open: false, jobId: null })}
+        onConfirm={async () => {
+          if (!deleteModal.jobId) return
+          setDeleteLoading(true)
+          await softDeleteJobPosting(deleteModal.jobId)
+          setDeleteModal({ open: false, jobId: null })
+          setDeleteLoading(false)
+          showToast('Job listing deleted', 'success')
+          refresh()
+        }}
+        title="Delete this job listing?"
+        description="Removes it from student view and stops new matches. Existing match data is preserved."
+        isLoading={deleteLoading}
+      />
+
+      <Toast {...toast} onHide={hideToast} />
     </AdminShell>
   )
 }

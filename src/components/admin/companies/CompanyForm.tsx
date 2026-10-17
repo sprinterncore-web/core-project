@@ -4,7 +4,10 @@ import { useEffect, useState } from 'react'
 import { Toggle } from '@/components/ui/Toggle'
 import type { Company, CompanyStatus } from '@/types/database'
 
-export type CompanyFormValues = Omit<Company, 'id' | 'created_at'>
+export type CompanyFormValues = Omit<
+  Company,
+  'id' | 'created_at' | 'deleted' | 'deleted_at'
+>
 
 const STAGES = [
   'Pre-Seed',

@@ -2,14 +2,16 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { Loader2, Plus } from 'lucide-react'
 import { AdminShell } from '@/components/admin/AdminShell'
 import { CompanyForm } from '@/components/admin/companies/CompanyForm'
+import { DeleteConfirmModal } from '@/components/ui/DeleteConfirmModal'
 import {
   getAllJobPostings,
   getCompanyUsersForLinking,
   linkCompanyUserByEmail,
+  softDeleteCompany,
   updateCompany,
   updateCompanyUser,
 } from '@/lib/supabase/admin'
@@ -19,7 +21,10 @@ import type { Company, JobPosting } from '@/types/database'
 
 export default function EditCompanyPage() {
   const params = useParams()
+  const router = useRouter()
   const id = String(params.id)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteLoading, setDeleteLoading] = useState(false)
   const [company, setCompany] = useState<Company | null>(null)
   const [jobs, setJobs] = useState<JobPosting[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -80,6 +85,13 @@ export default function EditCompanyPage() {
             setError(null)
           }}
         />
+        <button
+          type="button"
+          onClick={() => setDeleteOpen(true)}
+          className="mt-4 w-full rounded-full border border-red-200 py-2.5 text-sm font-semibold text-red-500"
+        >
+          Delete Company
+        </button>
       </div>
 
       <section className="mt-8 rounded-2xl border border-line bg-white p-6">
@@ -179,6 +191,21 @@ export default function EditCompanyPage() {
           </ul>
         )}
       </section>
+
+      <DeleteConfirmModal
+        isOpen={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={async () => {
+          setDeleteLoading(true)
+          await softDeleteCompany(id)
+          setDeleteLoading(false)
+          setDeleteOpen(false)
+          router.push('/admin/companies')
+        }}
+        title={`Delete ${company.company_name}?`}
+        description="This will soft delete the company, all their job listings, and their portal access. All data is preserved."
+        isLoading={deleteLoading}
+      />
     </AdminShell>
   )
 }

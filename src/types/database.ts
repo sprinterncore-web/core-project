@@ -43,6 +43,8 @@ export interface Profile {
   onboarding_step: number
   sprint_score: number
   profile_status: ProfileStatus
+  deleted: boolean
+  deleted_at: string | null
 }
 
 export interface Company {
@@ -64,6 +66,8 @@ export interface Company {
   call_notes: string | null
   platform_access: boolean
   access_granted_at: string | null
+  deleted: boolean
+  deleted_at: string | null
 }
 
 export interface CompanyUser {
@@ -74,6 +78,8 @@ export interface CompanyUser {
   full_name: string
   title: string | null
   email_confirmed: boolean
+  deleted: boolean
+  deleted_at: string | null
 }
 
 export interface Notification {
@@ -119,6 +125,8 @@ export interface JobPosting {
   approval_status: ApprovalStatus
   submitted_by: 'admin' | 'company'
   rejection_reason: string | null
+  deleted: boolean
+  deleted_at: string | null
 }
 
 export interface MatchResult {

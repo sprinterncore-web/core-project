@@ -8,6 +8,8 @@ import { Eye, EyeOff, Loader2, MailWarning } from 'lucide-react'
 import { AuthLeftPanel } from '@/components/auth/AuthLeftPanel'
 import { createClient } from '@/lib/supabase/client'
 import { verifyCurrentUserIsAdmin } from '@/lib/actions/verify-admin'
+import { isTestingMode } from '@/lib/testing'
+import { TestingBanner } from '@/components/ui/TestingBanner'
 
 function GoogleIcon() {
   return (
@@ -41,6 +43,12 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [testingMode, setTestingMode] = useState(false)
+  const [showTesting, setShowTesting] = useState(false)
+
+  useEffect(() => {
+    setShowTesting(isTestingMode())
+  }, [])
 
   useEffect(() => {
     if (searchParams.get('error') === 'auth_callback_failed') {
@@ -67,7 +75,7 @@ function LoginForm() {
     }
 
     if (data.user) {
-      if (!data.user.email_confirmed_at) {
+      if (!testingMode && !data.user.email_confirmed_at) {
         await supabase.auth.signOut()
         setError(
           'Please confirm your email before logging in. Check your inbox for the verification link.'
@@ -110,6 +118,9 @@ function LoginForm() {
 
   return (
     <>
+      {showTesting ? (
+        <TestingBanner enabled={testingMode} onChange={setTestingMode} />
+      ) : null}
       <h1 className="text-2xl font-bold text-navy">Welcome back</h1>
       <p className="mt-2 text-sm text-slate">
         Don&apos;t have an account?{' '}
@@ -120,6 +131,12 @@ function LoginForm() {
           Sign up free
         </Link>
       </p>
+
+      {testingMode ? (
+        <p className="mt-2 text-center text-xs text-amber-600">
+          Testing: email confirmation skipped
+        </p>
+      ) : null}
 
       {errorParam === 'email_not_confirmed' ? (
         <div className="mb-4 mt-8 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">

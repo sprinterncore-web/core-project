@@ -18,40 +18,149 @@ export async function isAdmin(userId: string): Promise<boolean> {
   return !!data
 }
 
-export async function getAllStudents(): Promise<Profile[]> {
+export async function getAllStudents(
+  includeDeleted = false
+): Promise<Profile[]> {
   const supabase = createClient()
-  const { data } = await supabase
+  let query = supabase
     .from('profiles')
     .select('*')
     .order('created_at', { ascending: false })
+  if (!includeDeleted) {
+    query = query.eq('deleted', false)
+  }
+  const { data } = await query
   return (data ?? []) as Profile[]
 }
 
-export async function getAllCompanies(): Promise<Company[]> {
+export async function getAllCompanies(
+  includeDeleted = false
+): Promise<Company[]> {
   const supabase = createClient()
-  const { data } = await supabase
+  let query = supabase
     .from('companies')
     .select('*')
     .order('created_at', { ascending: false })
+  if (!includeDeleted) {
+    query = query.eq('deleted', false)
+  }
+  const { data } = await query
   return (data ?? []) as Company[]
 }
 
-export async function getAllJobPostings(): Promise<JobPosting[]> {
+export async function getAllJobPostings(
+  includeDeleted = false
+): Promise<JobPosting[]> {
   const supabase = createClient()
-  const { data } = await supabase
+  let query = supabase
     .from('job_postings')
     .select('*, company:companies(company_name, stage)')
     .order('created_at', { ascending: false })
+  if (!includeDeleted) {
+    query = query.eq('deleted', false)
+  }
+  const { data } = await query
   return (data ?? []) as JobPosting[]
 }
 
+export async function softDeleteStudent(
+  studentId: string
+): Promise<{ error: string | null }> {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('profiles')
+    .update({
+      deleted: true,
+      deleted_at: new Date().toISOString(),
+    })
+    .eq('id', studentId)
+  await supabase.from('match_results').delete().eq('student_id', studentId)
+  return { error: error?.message ?? null }
+}
+
+export async function restoreStudent(
+  studentId: string
+): Promise<{ error: string | null }> {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('profiles')
+    .update({ deleted: false, deleted_at: null })
+    .eq('id', studentId)
+  return { error: error?.message ?? null }
+}
+
+export async function softDeleteCompany(
+  companyId: string
+): Promise<{ error: string | null }> {
+  const supabase = createClient()
+  const now = new Date().toISOString()
+  await supabase
+    .from('companies')
+    .update({ deleted: true, deleted_at: now })
+    .eq('id', companyId)
+  await supabase
+    .from('job_postings')
+    .update({ deleted: true, deleted_at: now })
+    .eq('company_id', companyId)
+  await supabase
+    .from('company_users')
+    .update({ deleted: true, deleted_at: now })
+    .eq('company_id', companyId)
+  return { error: null }
+}
+
+export async function restoreCompany(
+  companyId: string
+): Promise<{ error: string | null }> {
+  const supabase = createClient()
+  await supabase
+    .from('companies')
+    .update({ deleted: false, deleted_at: null })
+    .eq('id', companyId)
+  await supabase
+    .from('job_postings')
+    .update({ deleted: false, deleted_at: null })
+    .eq('company_id', companyId)
+  await supabase
+    .from('company_users')
+    .update({ deleted: false, deleted_at: null })
+    .eq('company_id', companyId)
+  return { error: null }
+}
+
+export async function softDeleteJobPosting(
+  jobId: string
+): Promise<{ error: string | null }> {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('job_postings')
+    .update({
+      deleted: true,
+      deleted_at: new Date().toISOString(),
+      is_active: false,
+    })
+    .eq('id', jobId)
+  return { error: error?.message ?? null }
+}
+
+export async function restoreJobPosting(
+  jobId: string
+): Promise<{ error: string | null }> {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('job_postings')
+    .update({ deleted: false, deleted_at: null })
+    .eq('id', jobId)
+  return { error: error?.message ?? null }
+}
+
 export async function createCompany(
-  company: Omit<Company, 'id' | 'created_at'>
+  company: Omit<Company, 'id' | 'created_at' | 'deleted' | 'deleted_at'>
 ): Promise<{ id: string | null; error: string | null }> {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('companies')
-    .insert(company)
+    .insert({ ...company, deleted: false, deleted_at: null })
     .select('id')
     .single()
   return { id: data?.id ?? null, error: error?.message ?? null }
@@ -67,13 +176,18 @@ export async function updateCompany(
 }
 
 export async function createJobPosting(
-  job: Omit<JobPosting, 'id' | 'created_at' | 'company'>
+  job: Omit<
+    JobPosting,
+    'id' | 'created_at' | 'company' | 'deleted' | 'deleted_at'
+  >
 ): Promise<{ id: string | null; error: string | null }> {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('job_postings')
     .insert({
       ...job,
+      deleted: false,
+      deleted_at: null,
       approval_status: job.approval_status ?? 'approved',
       submitted_by: job.submitted_by ?? 'admin',
       rejection_reason: job.rejection_reason ?? null,

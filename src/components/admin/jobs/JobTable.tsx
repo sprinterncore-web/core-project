@@ -10,7 +10,8 @@ type Props = {
   companyFilter: string
   roleFilter: string
   onToggleActive: (id: string, active: boolean) => void
-  onDeactivate: (id: string) => void
+  onDelete?: (job: JobPosting) => void
+  onRestore?: (jobId: string) => void
 }
 
 export function JobTable({
@@ -20,7 +21,8 @@ export function JobTable({
   companyFilter,
   roleFilter,
   onToggleActive,
-  onDeactivate,
+  onDelete,
+  onRestore,
 }: Props) {
   const q = search.trim().toLowerCase()
   const filtered = jobs.filter((j) => {
@@ -65,10 +67,14 @@ export function JobTable({
           </tr>
         </thead>
         <tbody>
-          {filtered.map((j) => (
+          {filtered.map((j) => {
+            const isDeleted = j.deleted === true
+            return (
             <tr
               key={j.id}
-              className="border-b border-line last:border-0 hover:bg-canvas"
+              className={`border-b border-line last:border-0 hover:bg-canvas ${
+                isDeleted ? 'bg-red-50/30' : ''
+              }`}
             >
               <td className="px-5 py-4">
                 <div className="flex items-center gap-3">
@@ -130,22 +136,38 @@ export function JobTable({
                 </button>
               </td>
               <td className="px-5 py-4">
+                {isDeleted ? (
+                  <span className="mr-2 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-600">
+                    Deleted
+                  </span>
+                ) : null}
                 <Link
                   href={`/admin/jobs/${j.id}`}
                   className="text-sm font-semibold text-blue hover:underline"
                 >
                   Edit
                 </Link>
-                <button
-                  type="button"
-                  onClick={() => onDeactivate(j.id)}
-                  className="ml-3 text-sm text-red-500 hover:underline"
-                >
-                  Deactivate
-                </button>
+                {isDeleted && onRestore ? (
+                  <button
+                    type="button"
+                    onClick={() => onRestore(j.id)}
+                    className="ml-3 text-sm font-semibold text-teal"
+                  >
+                    Restore
+                  </button>
+                ) : null}
+                {!isDeleted && onDelete ? (
+                  <button
+                    type="button"
+                    onClick={() => onDelete(j)}
+                    className="ml-3 text-sm font-semibold text-red-500"
+                  >
+                    Delete
+                  </button>
+                ) : null}
               </td>
             </tr>
-          ))}
+          )})}
         </tbody>
       </table>
     </div>
