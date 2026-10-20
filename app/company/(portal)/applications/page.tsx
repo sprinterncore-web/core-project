@@ -1,12 +1,16 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { Loader2 } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ApplicationCard } from '@/components/company/ApplicationCard'
 import { CompanyPortalNav } from '@/components/company/CompanyPortalNav'
 import { createClient } from '@/lib/supabase/client'
 import { getCompanyApplications } from '@/lib/supabase/applications'
-import type { Application, ApplicationStatus } from '@/types/database'
+import type {
+  Application,
+  ApplicationStatus,
+  Company,
+  CompanyUser,
+} from '@/types/database'
 
 const TABS: Array<{ id: 'all' | ApplicationStatus; label: string }> = [
   { id: 'all', label: 'All' },
@@ -16,41 +20,60 @@ const TABS: Array<{ id: 'all' | ApplicationStatus; label: string }> = [
   { id: 'declined', label: 'Declined' },
 ]
 
-export default function CompanyApplicationsPage() {
-  const [userName, setUserName] = useState('')
-  const [companyName, setCompanyName] = useState('Your Company')
-  const [companyId, setCompanyId] = useState<string | null>(null)
-  const [applications, setApplications] = useState<Application[]>([])
-  const [tab, setTab] = useState<'all' | ApplicationStatus>('all')
-  const [loading, setLoading] = useState(true)
+type CompanyUserWithCompany = CompanyUser & { company?: Company | null }
 
-  async function refresh(cid: string) {
-    setApplications(await getCompanyApplications(cid))
-  }
+export default function CompanyApplicationsPage() {
+  const [applications, setApplications] = useState<Application[]>([])
+  const [companyUser, setCompanyUser] = useState<CompanyUser | null>(null)
+  const [company, setCompany] = useState<Company | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [tab, setTab] = useState<'all' | ApplicationStatus>('all')
+
+  const refresh = useCallback(async (companyId: string) => {
+    setApplications(await getCompanyApplications(companyId))
+  }, [])
 
   useEffect(() => {
     async function load() {
       const supabase = createClient()
+
       const {
         data: { user },
       } = await supabase.auth.getUser()
-      if (!user) return
+      if (!user) {
+        setLoading(false)
+        return
+      }
 
-      const { data: cu } = await supabase
+      const { data: cu, error: cuError } = await supabase
         .from('company_users')
         .select('*, company:companies(*)')
         .eq('id', user.id)
-        .maybeSingle()
+        .single()
 
-      setUserName(cu?.full_name ?? 'User')
-      if (cu?.company_id) {
-        setCompanyId(cu.company_id)
-        const co = cu.company as { company_name?: string } | null
-        if (co?.company_name) setCompanyName(co.company_name)
-        await refresh(cu.company_id)
+      if (cuError) {
+        console.error('Error loading company user:', cuError.message)
+        setLoading(false)
+        return
       }
+
+      if (!cu) {
+        setLoading(false)
+        return
+      }
+
+      const row = cu as CompanyUserWithCompany
+      setCompanyUser(row)
+      setCompany(row.company ?? null)
+
+      if (row.company_id) {
+        const apps = await getCompanyApplications(row.company_id)
+        setApplications(apps)
+      }
+
       setLoading(false)
     }
+
     load()
   }, [])
 
@@ -70,11 +93,14 @@ export default function CompanyApplicationsPage() {
   }, [filtered])
 
   const pendingCount = applications.filter((a) => a.status === 'pending').length
+  const companyName = company?.company_name ?? 'Your Company'
+  const userName = companyUser?.full_name ?? 'User'
+  const companyId = companyUser?.company_id ?? null
 
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="animate-spin text-blue" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-teal border-t-transparent" />
       </div>
     )
   }
@@ -87,6 +113,13 @@ export default function CompanyApplicationsPage() {
         <p className="mt-1 text-base text-slate">
           {pendingCount} pending review
         </p>
+
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 font-mono text-xs">
+            <p>company_id: {companyUser?.company_id ?? 'null'}</p>
+            <p>applications count: {applications.length}</p>
+          </div>
+        )}
 
         <div className="mb-8 mt-6 flex flex-wrap gap-2">
           {TABS.map((t) => (
@@ -115,7 +148,8 @@ export default function CompanyApplicationsPage() {
             return (
               <section key={jobId} className="mb-10">
                 <h2 className="text-lg font-bold text-navy">
-                  {job?.role_title ?? 'Role'} at {job?.company_name ?? companyName}
+                  {job?.role_title ?? 'Role'} at{' '}
+                  {job?.company_name ?? companyName}
                 </h2>
                 <p className="text-sm text-slate">
                   {apps.length} application{apps.length === 1 ? '' : 's'}

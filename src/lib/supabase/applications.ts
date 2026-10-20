@@ -18,12 +18,38 @@ export async function getCompanyApplications(
   companyId: string
 ): Promise<Application[]> {
   const supabase = createClient()
-  const { data } = await supabase
+
+  console.log('Fetching applications for company:', companyId)
+
+  const { data, error } = await supabase
     .from('applications')
-    .select('*, job_posting:job_postings(*), student:profiles(*)')
+    .select(
+      `
+      *,
+      job_posting:job_postings(*),
+      student:profiles(
+        id,
+        full_name,
+        email,
+        university,
+        major,
+        graduation_year,
+        skills,
+        github_url,
+        linkedin_url
+      )
+    `
+    )
     .eq('company_id', companyId)
-    .or('deleted.eq.false,deleted.is.null')
+    .eq('deleted', false)
     .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching company applications:', error.message)
+    return []
+  }
+
+  console.log('Applications found:', data?.length ?? 0)
   return (data ?? []) as Application[]
 }
 
