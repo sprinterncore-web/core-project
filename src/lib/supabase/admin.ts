@@ -57,7 +57,7 @@ export async function getAllJobPostings(
     .select('*, company:companies(company_name, stage)')
     .order('created_at', { ascending: false })
   if (!includeDeleted) {
-    query = query.eq('deleted', false)
+    query = query.or('deleted.eq.false,deleted.is.null')
   }
   const { data } = await query
   return (data ?? []) as JobPosting[]

@@ -49,9 +49,15 @@ export function MatchCard({ match, index, compact = false }: MatchCardProps) {
           </div>
         </div>
 
-        <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-teal/20 bg-teal-wash px-3 py-1 text-sm font-bold text-teal">
-          ● {match.match_score}% {match.match_label}
-        </span>
+        {match.match_label === 'PENDING MATCH' || match.match_score === 0 ? (
+          <span className="shrink-0 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+            ⏳ Match Pending
+          </span>
+        ) : (
+          <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-teal/20 bg-teal-wash px-3 py-1 text-sm font-bold text-teal">
+            ● {match.match_score}% {match.match_label}
+          </span>
+        )}
       </div>
 
       <div className="mt-5 flex items-center justify-between rounded-xl bg-canvas px-5 py-4">
