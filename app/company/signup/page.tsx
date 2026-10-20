@@ -95,6 +95,55 @@ export default function CompanySignupPage() {
       },
     }
 
+    async function createCompanyRecords(userId: string, accountEmail: string) {
+      const companyInitial = companyName.trim().charAt(0).toUpperCase()
+
+      const { data: newCompany, error: companyError } = await supabase
+        .from('companies')
+        .insert({
+          company_name: companyName.trim(),
+          company_initial: companyInitial,
+          website: website || null,
+          contact_name: fullName.trim(),
+          contact_email: accountEmail.toLowerCase(),
+          contact_title: title.trim(),
+          stage: 'Unknown',
+          status: 'pending',
+          call_booked: false,
+          platform_access: false,
+        })
+        .select('id')
+        .single()
+
+      if (companyError || !newCompany) {
+        console.error('Company creation error:', companyError?.message)
+      }
+
+      const { error: userError } = await supabase.from('company_users').insert({
+        id: userId,
+        email: accountEmail.toLowerCase(),
+        full_name: fullName.trim(),
+        title: title.trim(),
+        company_id: newCompany?.id ?? null,
+      })
+
+      if (userError) {
+        console.error('Company user creation error:', userError.message)
+      }
+
+      await supabase.from('notifications').insert({
+        type: 'new_company_signup',
+        title: 'New company signed up',
+        body: `${fullName} from ${companyName} created an account.`,
+        metadata: {
+          company_id: newCompany?.id,
+          company_name: companyName,
+          contact_email: accountEmail,
+          website: website || null,
+        },
+      })
+    }
+
     let signupEmail = email
     let { data, error: signUpError } = await supabase.auth.signUp({
       email: signupEmail,
@@ -116,13 +165,7 @@ export default function CompanySignupPage() {
       data = retry.data
       signUpError = retry.error
       if (!retry.error && retry.data.user) {
-        await supabase.from('company_users').insert({
-          id: retry.data.user.id,
-          email: signupEmail,
-          full_name: fullName,
-          title,
-          company_id: null,
-        })
+        await createCompanyRecords(retry.data.user.id, signupEmail)
         setModifiedEmail(signupEmail)
         setSuccess(true)
         setLoading(false)
@@ -137,20 +180,7 @@ export default function CompanySignupPage() {
     }
 
     if (data.user) {
-      await supabase.from('company_users').insert({
-        id: data.user.id,
-        email: signupEmail,
-        full_name: fullName,
-        title,
-        company_id: null,
-      })
-
-      await supabase.from('notifications').insert({
-        type: 'new_company_signup',
-        title: 'New company signed up',
-        body: `${fullName} from ${companyName} created an account.`,
-        metadata: { email: signupEmail, company_name: companyName, website },
-      })
+      await createCompanyRecords(data.user.id, signupEmail)
     }
 
     setSuccess(true)

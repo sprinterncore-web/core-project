@@ -42,7 +42,9 @@ export default function AdminCompaniesPage() {
     return {
       total: active.length,
       active: active.filter((c) => c.status === 'active').length,
-      pendingCall: active.filter((c) => !c.call_booked).length,
+      pendingCall: active.filter(
+        (c) => c.status === 'pending' && !c.call_booked
+      ).length,
       access: active.filter((c) => c.platform_access).length,
     }
   }, [companies])

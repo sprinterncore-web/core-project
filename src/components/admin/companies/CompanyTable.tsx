@@ -91,17 +91,19 @@ export function CompanyTable({
                 </span>
               </td>
               <td className="px-5 py-4">
-                <span
-                  className={`rounded-full border px-2.5 py-1 text-xs font-semibold capitalize ${
-                    c.status === 'active'
-                      ? 'border-teal/20 bg-teal-wash text-teal'
-                      : c.status === 'inactive'
-                        ? 'border-line bg-canvas text-slate'
-                        : 'border-amber-200 bg-amber-50 text-amber-700'
-                  }`}
-                >
-                  {c.status}
-                </span>
+                {c.status === 'active' ? (
+                  <span className="rounded-full border border-teal/20 bg-teal-wash px-2.5 py-1 text-xs font-semibold text-teal">
+                    ✓ Active
+                  </span>
+                ) : c.status === 'inactive' ? (
+                  <span className="rounded-full border border-line bg-canvas px-2.5 py-1 text-xs font-semibold text-slate">
+                    Inactive
+                  </span>
+                ) : (
+                  <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+                    ⏳ Pending
+                  </span>
+                )}
               </td>
               <td className="px-5 py-4 text-center text-sm">
                 {c.call_booked ? (

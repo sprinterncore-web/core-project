@@ -13,12 +13,7 @@ import {
 import { CompanyPortalNav } from '@/components/company/CompanyPortalNav'
 import { JobCard } from '@/components/company/JobCard'
 import { createClient } from '@/lib/supabase/client'
-import {
-  getCompanyById,
-  getCompanyJobPostings,
-  getCompanyUser,
-  getMatchCountsByJobIds,
-} from '@/lib/supabase/company'
+import { getCompanyJobPostings, getMatchCountsByJobIds } from '@/lib/supabase/company'
 import type { Company, JobPosting } from '@/types/database'
 
 export default function CompanyDashboardPage() {
@@ -36,13 +31,22 @@ export default function CompanyDashboardPage() {
       } = await supabase.auth.getUser()
       if (!user) return
 
-      const cu = await getCompanyUser(user.id)
-      setUserName(cu?.full_name ?? user.email ?? 'User')
+      const { data: companyUser } = await supabase
+        .from('company_users')
+        .select('*, company:companies(*)')
+        .eq('id', user.id)
+        .maybeSingle()
 
-      if (cu?.company_id) {
-        const co = await getCompanyById(cu.company_id)
-        setCompany(co)
-        const list = await getCompanyJobPostings(cu.company_id)
+      setUserName(companyUser?.full_name ?? user.email ?? 'User')
+
+      const linked = companyUser?.company
+      const co = linked
+        ? ((Array.isArray(linked) ? linked[0] : linked) as Company)
+        : null
+      setCompany(co)
+
+      if (companyUser?.company_id) {
+        const list = await getCompanyJobPostings(companyUser.company_id)
         setJobs(list)
         setMatchCounts(await getMatchCountsByJobIds(list.map((j) => j.id)))
       }
