@@ -58,21 +58,12 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  if (
-    (pathname.startsWith('/company/dashboard') ||
-      pathname.startsWith('/company/jobs')) &&
-    !user
-  ) {
-    return NextResponse.redirect(new URL('/company/login', request.url))
-  }
+  const isCompanyPortalRoute =
+    pathname.startsWith('/company/dashboard') ||
+    pathname.startsWith('/company/jobs')
 
-  if (
-    user &&
-    (pathname === '/company/login' || pathname === '/company/signup')
-  ) {
-    return NextResponse.redirect(
-      new URL('/company/dashboard', request.url)
-    )
+  if (isCompanyPortalRoute && !user) {
+    return NextResponse.redirect(new URL('/company/login', request.url))
   }
 
   if (

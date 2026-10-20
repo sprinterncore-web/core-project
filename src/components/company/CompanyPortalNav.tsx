@@ -44,7 +44,6 @@ export function CompanyPortalNav({ companyName, userName }: Props) {
     const supabase = createClient()
     await supabase.auth.signOut()
     router.push('/company/login')
-    router.refresh()
   }
 
   return (

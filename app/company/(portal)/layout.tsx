@@ -13,13 +13,8 @@ export default async function CompanyPortalLayout({
 
   if (!user) redirect('/company/login')
 
-  const { data: companyUser } = await supabase
-    .from('company_users')
-    .select('id')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  if (!companyUser) redirect('/company/login')
+  // Company membership is validated on login and in page UI — do not redirect
+  // here (missing company_users row + middleware login bounce caused loops).
 
   return <div className="min-h-screen bg-canvas">{children}</div>
 }

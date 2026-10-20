@@ -95,7 +95,6 @@ export default function CompanyLoginPage() {
       }
     }
 
-    router.refresh()
     router.push('/company/dashboard')
     setLoading(false)
   }
