@@ -1,8 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { Bell, HelpCircle, Zap } from 'lucide-react'
+import { usePathname, useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { Bell, ClipboardList, HelpCircle, Zap } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import { countPendingApplications } from '@/lib/supabase/applications'
 
 type DashboardNavProps = {
   userEmail: string
@@ -22,6 +25,15 @@ function initials(userName: string | null, email: string): string {
 
 export function DashboardNav({ userEmail, userName }: DashboardNavProps) {
   const router = useRouter()
+  const pathname = usePathname()
+  const [pendingCount, setPendingCount] = useState(0)
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) countPendingApplications(user.id).then(setPendingCount)
+    })
+  }, [pathname])
 
   return (
     <header className="sticky top-0 z-40 h-16 border-b border-line bg-white">
@@ -33,6 +45,35 @@ export function DashboardNav({ userEmail, userName }: DashboardNavProps) {
           <span className="text-lg font-bold text-navy">sprint</span>
           <span className="text-lg font-bold text-teal">ern</span>
         </Link>
+
+        <nav className="hidden items-center gap-6 md:flex">
+          <Link
+            href="/dashboard"
+            className={`text-sm font-medium ${
+              pathname === '/dashboard'
+                ? 'text-navy'
+                : 'text-slate hover:text-navy'
+            }`}
+          >
+            Matches
+          </Link>
+          <Link
+            href="/dashboard/applications"
+            className={`relative inline-flex items-center gap-1.5 text-sm font-medium ${
+              pathname.startsWith('/dashboard/applications')
+                ? 'text-navy'
+                : 'text-slate hover:text-navy'
+            }`}
+          >
+            <ClipboardList size={16} />
+            My Applications
+            {pendingCount > 0 ? (
+              <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-blue px-1.5 text-[10px] font-bold text-white">
+                {pendingCount}
+              </span>
+            ) : null}
+          </Link>
+        </nav>
 
         <div className="hidden md:flex">
           <span className="rounded-full border border-teal/20 bg-teal-wash px-4 py-1.5 text-xs font-semibold text-teal">

@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   Briefcase,
   Building2,
+  ClipboardList,
   Globe,
   LogOut,
   Sparkles,
@@ -21,6 +22,7 @@ const manageLinks = [
 ]
 
 const toolLinks = [
+  { href: '/admin/applications', icon: ClipboardList, label: 'Applications' },
   { href: '/admin/matches', icon: Sparkles, label: 'Match Results' },
   { href: '/', icon: Globe, label: 'View Live Site', external: true },
 ]

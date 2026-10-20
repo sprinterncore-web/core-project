@@ -1,15 +1,28 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import type { MatchResult } from '@/types/database'
+import type { ApplicationStatus, JobPosting, MatchResult } from '@/types/database'
+import { ApplicationStatusBadge } from '@/components/student/ApplicationStatusBadge'
 
 type MatchCardProps = {
   match: MatchResult
   index: number
   compact?: boolean
+  onApply?: (job: JobPosting) => void
+  onViewDetails?: (job: JobPosting) => void
+  hasApplied?: boolean
+  applicationStatus?: ApplicationStatus
 }
 
-export function MatchCard({ match, index, compact = false }: MatchCardProps) {
+export function MatchCard({
+  match,
+  index,
+  compact = false,
+  onApply,
+  onViewDetails,
+  hasApplied = false,
+  applicationStatus,
+}: MatchCardProps) {
   const job = match.job_posting
   if (!job) return null
 
@@ -101,20 +114,28 @@ export function MatchCard({ match, index, compact = false }: MatchCardProps) {
       {!compact ? (
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-3">
-            <motion.button
-              type="button"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.97 }}
-              className="rounded-full bg-navy px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-navy/90"
-            >
-              Accept & Schedule Intro (20 min) 📅
-            </motion.button>
-            <button
-              type="button"
-              className="rounded-full border border-line px-5 py-2.5 text-sm text-navy transition-all hover:border-navy"
-            >
-              View Full Sprint Scope
-            </button>
+            {hasApplied && applicationStatus ? (
+              <ApplicationStatusBadge status={applicationStatus} />
+            ) : onApply ? (
+              <motion.button
+                type="button"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => onApply(job)}
+                className="rounded-full bg-navy px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-navy/90"
+              >
+                Accept & Schedule Intro (20 min) 📅
+              </motion.button>
+            ) : null}
+            {onViewDetails ? (
+              <button
+                type="button"
+                onClick={() => onViewDetails(job)}
+                className="rounded-full border border-line px-5 py-2.5 text-sm text-navy transition-all hover:border-navy"
+              >
+                View Full Sprint Scope
+              </button>
+            ) : null}
           </div>
           <span className="text-sm font-semibold text-teal">{startsLabel}</span>
         </div>

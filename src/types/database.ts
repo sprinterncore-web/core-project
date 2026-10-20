@@ -140,3 +140,30 @@ export interface MatchResult {
   is_visible: boolean
   job_posting?: JobPosting
 }
+
+export type ApplicationStatus =
+  | 'pending'
+  | 'accepted'
+  | 'declined'
+  | 'interview_scheduled'
+
+export interface Application {
+  id: string
+  created_at: string
+  student_id: string
+  job_posting_id: string
+  company_id: string
+  pitch: string
+  resume_link: string | null
+  proposed_slot_1: string
+  proposed_slot_2: string | null
+  proposed_slot_3: string | null
+  status: ApplicationStatus
+  company_response_at: string | null
+  decline_reason: string | null
+  confirmed_slot: string | null
+  deleted: boolean
+  job_posting?: JobPosting
+  student?: Profile
+  company?: Company
+}

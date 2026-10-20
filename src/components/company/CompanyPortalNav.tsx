@@ -14,6 +14,7 @@ type Props = {
 const links = [
   { href: '/company/dashboard', label: 'Dashboard' },
   { href: '/company/jobs', label: 'Job Listings' },
+  { href: '/company/applications', label: 'Applications' },
   { href: '/book', label: 'Book a Call' },
 ]
 

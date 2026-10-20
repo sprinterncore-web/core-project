@@ -1,6 +1,7 @@
 import { createClient } from './client'
 import type {
   Admin,
+  Application,
   Company,
   CompanyUser,
   JobPosting,
@@ -46,6 +47,18 @@ export async function getAllCompanies(
   }
   const { data } = await query
   return (data ?? []) as Company[]
+}
+
+export async function getAllApplications(): Promise<Application[]> {
+  const supabase = createClient()
+  const { data } = await supabase
+    .from('applications')
+    .select(
+      '*, job_posting:job_postings(*), student:profiles(*), company:companies(*)'
+    )
+    .or('deleted.eq.false,deleted.is.null')
+    .order('created_at', { ascending: false })
+  return (data ?? []) as Application[]
 }
 
 export async function getAllJobPostings(
