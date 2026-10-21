@@ -22,6 +22,22 @@ export type CompanyStage =
   | 'Bootstrapped'
   | 'Other'
 
+export interface SkillProof {
+  skill: string
+  url: string
+  label: string
+}
+
+export type AvailabilityHours = {
+  mon?: number[]
+  tue?: number[]
+  wed?: number[]
+  thu?: number[]
+  fri?: number[]
+  sat?: number[]
+  sun?: number[]
+}
+
 export interface Profile {
   id: string
   created_at: string
@@ -45,6 +61,11 @@ export interface Profile {
   profile_status: ProfileStatus
   deleted: boolean
   deleted_at: string | null
+  skill_proofs: SkillProof[]
+  availability_hours: AvailabilityHours
+  sprint_pitch: string | null
+  best_project_url: string | null
+  best_project_name: string | null
 }
 
 export interface Company {

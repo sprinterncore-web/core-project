@@ -3,9 +3,14 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { Bell, ClipboardList, HelpCircle, Zap } from 'lucide-react'
+import { Bell, ClipboardList, HelpCircle, UserCircle, Zap } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { countPendingApplications } from '@/lib/supabase/applications'
+import { getProfile } from '@/lib/supabase/profile'
+import {
+  calculateProfileCompletion,
+  normalizeProfile,
+} from '@/lib/profileCompletion'
 
 type DashboardNavProps = {
   userEmail: string
@@ -27,13 +32,21 @@ export function DashboardNav({ userEmail, userName }: DashboardNavProps) {
   const router = useRouter()
   const pathname = usePathname()
   const [pendingCount, setPendingCount] = useState(0)
+  const [completionPct, setCompletionPct] = useState(0)
 
   useEffect(() => {
     const supabase = createClient()
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) countPendingApplications(user.id).then(setPendingCount)
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return
+      countPendingApplications(user.id).then(setPendingCount)
+      const p = await getProfile(user.id)
+      if (p) setCompletionPct(calculateProfileCompletion(normalizeProfile(p)))
     })
   }, [pathname])
+
+  const avatarInitials = initials(userName, userEmail)
+  const ringCirc = 2 * Math.PI * 20
+  const ringOffset = ringCirc * (1 - completionPct / 100)
 
   return (
     <header className="sticky top-0 z-40 h-16 border-b border-line bg-white">
@@ -56,6 +69,17 @@ export function DashboardNav({ userEmail, userName }: DashboardNavProps) {
             }`}
           >
             Matches
+          </Link>
+          <Link
+            href="/dashboard/profile"
+            className={`inline-flex items-center gap-1.5 text-sm font-medium ${
+              pathname.startsWith('/dashboard/profile')
+                ? 'text-navy'
+                : 'text-slate hover:text-navy'
+            }`}
+          >
+            <UserCircle size={16} />
+            Profile
           </Link>
           <Link
             href="/dashboard/applications"
@@ -100,9 +124,41 @@ export function DashboardNav({ userEmail, userName }: DashboardNavProps) {
           >
             Save & Exit
           </button>
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-navy text-sm font-bold text-white">
-            {initials(userName, userEmail)}
-          </div>
+          <Link
+            href="/dashboard/profile"
+            className="relative flex h-9 w-9 items-center justify-center"
+            aria-label="Your profile"
+          >
+            <svg
+              className="absolute inset-0 h-9 w-9 -rotate-90"
+              viewBox="0 0 44 44"
+            >
+              <circle
+                cx="22"
+                cy="22"
+                r="20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="text-line"
+              />
+              <circle
+                cx="22"
+                cy="22"
+                r="20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                className="text-teal"
+                strokeDasharray={ringCirc}
+                strokeDashoffset={ringOffset}
+              />
+            </svg>
+            <span className="relative flex h-8 w-8 items-center justify-center rounded-full bg-navy text-sm font-bold text-white">
+              {avatarInitials}
+            </span>
+          </Link>
         </div>
       </div>
     </header>
