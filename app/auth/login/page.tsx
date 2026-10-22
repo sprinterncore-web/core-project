@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/client'
 import { verifyCurrentUserIsAdmin } from '@/lib/actions/verify-admin'
 import { isTestingMode } from '@/lib/testing'
 import { TestingBanner } from '@/components/ui/TestingBanner'
+import { getClientSiteUrl } from '@/lib/site-url'
 
 function GoogleIcon() {
   return (
@@ -111,7 +112,7 @@ function LoginForm() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${getClientSiteUrl()}/auth/callback`,
       },
     })
   }

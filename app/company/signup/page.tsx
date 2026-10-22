@@ -24,6 +24,7 @@ import { createClient } from '@/lib/supabase/client'
 import { isTestingMode } from '@/lib/testing'
 import { TestingBanner } from '@/components/ui/TestingBanner'
 import { SKILL_CATEGORIES } from '@/data/skills'
+import { getClientSiteUrl } from '@/lib/site-url'
 import type { RoleType } from '@/types/database'
 
 const inputClass =
@@ -133,7 +134,7 @@ export default function CompanySignupPage() {
       email: signupEmail,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/company/callback`,
+        emailRedirectTo: `${getClientSiteUrl()}/company/callback`,
         data: { account_type: 'company' },
       },
     })
@@ -148,7 +149,7 @@ export default function CompanySignupPage() {
         email: signupEmail,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/company/callback`,
+          emailRedirectTo: `${getClientSiteUrl()}/company/callback`,
           data: { account_type: 'company' },
         },
       })

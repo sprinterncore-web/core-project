@@ -27,8 +27,11 @@ Or reset manually: **Authentication → Users** → user → **Reset password** 
 - [ ] Authentication → Providers → Email → Enable
 - [ ] Authentication → URL Configuration → add to Redirect URLs:
       http://localhost:3002/auth/callback
+      http://localhost:3002/company/callback
       http://localhost:3002/admin/login
-      https://yourdomain.com/auth/callback (when deployed)
+      https://sprintern.ai/auth/callback
+      https://sprintern.ai/company/callback
+      https://sprintern.ai/admin/login
 - [ ] Authentication → Providers → Google → Enable
         (needs Google OAuth credentials from Google Cloud Console)
 

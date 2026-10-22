@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, Loader2, MailCheck, Zap } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { getClientSiteUrl } from '@/lib/site-url'
 
 export default function AdminSignupPage() {
   const [fullName, setFullName] = useState('')
@@ -34,7 +35,7 @@ export default function AdminSignupPage() {
       password,
       options: {
         data: { full_name: fullName },
-        emailRedirectTo: `${window.location.origin}/admin/login`,
+        emailRedirectTo: `${getClientSiteUrl()}/admin/login`,
       },
     })
 

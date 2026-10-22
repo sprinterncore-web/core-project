@@ -9,6 +9,7 @@ import { CompanyAuthLeftPanel } from '@/components/company/CompanyAuthLeftPanel'
 import { createClient } from '@/lib/supabase/client'
 import { isTestingMode } from '@/lib/testing'
 import { TestingBanner } from '@/components/ui/TestingBanner'
+import { getClientSiteUrl } from '@/lib/site-url'
 
 function GoogleIcon() {
   return (
@@ -52,7 +53,7 @@ export default function CompanyLoginPage() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/company/callback`,
+        redirectTo: `${getClientSiteUrl()}/company/callback`,
       },
     })
   }

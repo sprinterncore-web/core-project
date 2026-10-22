@@ -11,6 +11,7 @@ import { createClient } from '@/lib/supabase/client'
 import { isTestingMode } from '@/lib/testing'
 import { TestingBanner } from '@/components/ui/TestingBanner'
 import { SKILL_CATEGORIES } from '@/data/skills'
+import { getClientSiteUrl } from '@/lib/site-url'
 import { updateProfile } from '@/lib/supabase/profile'
 
 const inputClass =
@@ -68,7 +69,7 @@ export default function SignupPage() {
       email: signupEmail,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${getClientSiteUrl()}/auth/callback`,
       },
     })
 
@@ -82,7 +83,7 @@ export default function SignupPage() {
         email: signupEmail,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `${getClientSiteUrl()}/auth/callback`,
         },
       })
       data = retry.data
