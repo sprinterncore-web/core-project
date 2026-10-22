@@ -54,14 +54,30 @@ function CallbackContent() {
         return
       }
 
+      const { data: companyUser } = await supabase
+        .from('company_users')
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle()
+
+      if (companyUser) {
+        router.replace('/company/dashboard')
+        return
+      }
+
       const { data: profile } = await supabase
         .from('profiles')
         .select('onboarding_complete, onboarding_step')
         .eq('id', user.id)
         .maybeSingle()
 
-      if (!profile?.onboarding_complete) {
-        const step = profile?.onboarding_step ?? 0
+      if (profile?.onboarding_complete) {
+        router.replace('/dashboard')
+        return
+      }
+
+      const step = profile?.onboarding_step ?? 0
+      if (step < 4) {
         router.replace(`/onboarding/step/${Math.max(1, step + 1)}`)
       } else {
         router.replace('/dashboard')

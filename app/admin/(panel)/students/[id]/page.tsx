@@ -37,17 +37,39 @@ export default function AdminStudentDetailPage() {
   }>({ message: '', type: 'success', visible: false })
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState(false)
+  const [resumeUrl, setResumeUrl] = useState('')
+  const [supplemental, setSupplemental] = useState('')
+  const [savingProfile, setSavingProfile] = useState(false)
 
   useEffect(() => {
     async function load() {
       const p = await getProfile(id)
       setProfile(p)
-      if (p) setStatus(p.profile_status ?? 'pending')
+      if (p) {
+        setStatus(p.profile_status ?? 'pending')
+        setResumeUrl(p.resume_url ?? '')
+        setSupplemental(p.supplemental_interests ?? '')
+      }
       setMatches(await getStudentMatches(id))
       setLoading(false)
     }
     load()
   }, [id])
+
+  async function saveProfileFields() {
+    setSavingProfile(true)
+    const { error } = await updateProfile(id, {
+      resume_url: resumeUrl.trim() || null,
+      supplemental_interests: supplemental.trim() || null,
+    })
+    setSavingProfile(false)
+    setToast({
+      message: error ? error : 'Profile fields saved',
+      type: error ? 'error' : 'success',
+      visible: true,
+    })
+    setTimeout(() => setToast((t) => ({ ...t, visible: false })), 2500)
+  }
 
   async function saveStatus() {
     const { error } = await updateProfile(id, { profile_status: status })
@@ -152,6 +174,50 @@ export default function AdminStudentDetailPage() {
                 </p>
               </div>
             </div>
+          </div>
+
+          <div className="rounded-2xl border border-line bg-white p-7">
+            <h3 className="text-lg font-bold text-navy">Resume & interests</h3>
+            <div className="mt-4">
+              <p className="text-xs uppercase tracking-wider text-slate">Resume</p>
+              {resumeUrl ? (
+                <a
+                  href={resumeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1 inline-block text-sm font-semibold text-blue"
+                >
+                  View on Google Drive →
+                </a>
+              ) : (
+                <p className="mt-1 text-sm text-slate">No resume link yet.</p>
+              )}
+              <input
+                className="mt-3 w-full rounded-xl border border-line px-4 py-2.5 text-sm"
+                placeholder="Resume URL"
+                value={resumeUrl}
+                onChange={(e) => setResumeUrl(e.target.value)}
+              />
+            </div>
+            <div className="mt-5">
+              <p className="text-xs uppercase tracking-wider text-slate">
+                Supplemental interests
+              </p>
+              <textarea
+                rows={4}
+                className="mt-2 w-full rounded-xl bg-canvas p-4 text-sm leading-relaxed text-navy outline-none focus:ring-2 focus:ring-teal/20"
+                value={supplemental}
+                onChange={(e) => setSupplemental(e.target.value)}
+              />
+            </div>
+            <button
+              type="button"
+              disabled={savingProfile}
+              onClick={saveProfileFields}
+              className="mt-4 rounded-full bg-navy px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              Save resume & interests
+            </button>
           </div>
 
           <div className="rounded-2xl border border-line bg-white p-7">

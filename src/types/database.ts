@@ -66,6 +66,9 @@ export interface Profile {
   sprint_pitch: string | null
   best_project_url: string | null
   best_project_name: string | null
+  resume_url: string | null
+  supplemental_interests: string | null
+  required_major?: boolean
 }
 
 export interface Company {
@@ -89,6 +92,21 @@ export interface Company {
   access_granted_at: string | null
   deleted: boolean
   deleted_at: string | null
+  team_size: string | null
+  pitch_deck_url: string | null
+  linkedin_url: string | null
+  funding_stage: string | null
+  founder_name: string | null
+  founder_title: string | null
+  onboarding_complete?: boolean
+  onboarding_step?: number
+}
+
+export interface University {
+  id: number
+  name: string
+  domain: string | null
+  country: string
 }
 
 export interface CompanyUser {
@@ -142,7 +160,13 @@ export interface JobPosting {
   company_id?: string | null
   notes?: string | null
   created_by?: string | null
-  company?: { company_name: string; stage: string }
+  company?: {
+    company_name: string
+    stage?: string
+    pitch_deck_url?: string | null
+    contact_name?: string
+    founder_name?: string | null
+  }
   approval_status: ApprovalStatus
   submitted_by: 'admin' | 'company'
   rejection_reason: string | null

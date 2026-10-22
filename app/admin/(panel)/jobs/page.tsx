@@ -157,25 +157,50 @@ export default function AdminJobsPage() {
 
       {listTab === 'pending' && pending.length > 0 ? (
         <div className="mb-8 space-y-4">
-          {pending.map((job) => (
+          {pending.map((job) => {
+            const co = job.company
+            const founder =
+              co?.founder_name ?? co?.contact_name ?? job.lead_engineer_name
+            const deck = co?.pitch_deck_url
+            return (
             <div
               key={job.id}
               className="rounded-2xl border border-amber-200 bg-white p-5"
             >
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <p className="font-bold text-navy">{job.role_title}</p>
+                  <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">
+                    Submitted by founder
+                  </span>
+                  <p className="mt-2 font-bold text-navy">{job.role_title}</p>
                   <p className="text-sm text-slate">
-                    {job.company_name} · ${job.payout_amount.toLocaleString()}
+                    {founder} · {job.company_name} · $
+                    {job.payout_amount.toLocaleString()}
                   </p>
+                  {deck ? (
+                    <a
+                      href={deck}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 inline-block text-sm font-semibold text-blue"
+                    >
+                      View pitch deck →
+                    </a>
+                  ) : null}
                 </div>
                 <div className="flex flex-wrap gap-2">
+                  <Link
+                    href={`/admin/jobs/${job.id}`}
+                    className="rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-navy hover:border-navy"
+                  >
+                    Edit before approving
+                  </Link>
                   <button
                     type="button"
                     onClick={() => approveJob(job.id)}
                     className="rounded-full bg-teal px-3 py-1.5 text-xs font-semibold text-white"
                   >
-                    Approve ✓
+                    Approve & Publish ✓
                   </button>
                   <button
                     type="button"
@@ -207,7 +232,7 @@ export default function AdminJobsPage() {
                 </div>
               ) : null}
             </div>
-          ))}
+          )})}
         </div>
       ) : null}
 

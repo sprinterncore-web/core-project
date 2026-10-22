@@ -1,9 +1,9 @@
 import { Check, Zap } from 'lucide-react'
 
 const features = [
-  'No cover letters or lengthy applications',
-  '2–4 week sprints, 10–15 hrs/week',
-  'Transparent milestone-based stipends',
+  'Submit your profile in 2 minutes',
+  'Get matched with real sprint projects',
+  'Earn while you build your portfolio',
 ]
 
 const schools = [

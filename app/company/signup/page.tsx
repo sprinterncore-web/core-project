@@ -1,36 +1,33 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Building2, Eye, EyeOff, Loader2 } from 'lucide-react'
+import {
+  BookOpen,
+  Briefcase,
+  Check,
+  Code2,
+  Eye,
+  EyeOff,
+  Loader2,
+  Megaphone,
+  Palette,
+  Presentation,
+  TrendingUp,
+  Users,
+} from 'lucide-react'
 import { CompanyAuthLeftPanel } from '@/components/company/CompanyAuthLeftPanel'
+import { Toggle } from '@/components/ui/Toggle'
 import { createClient } from '@/lib/supabase/client'
 import { isTestingMode } from '@/lib/testing'
 import { TestingBanner } from '@/components/ui/TestingBanner'
+import { SKILL_CATEGORIES } from '@/data/skills'
+import type { RoleType } from '@/types/database'
 
-function GoogleIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden>
-      <path
-        fill="#4285F4"
-        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-      />
-      <path
-        fill="#34A853"
-        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-      />
-      <path
-        fill="#EA4335"
-        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-      />
-    </svg>
-  )
-}
+const inputClass =
+  'w-full rounded-xl border border-line bg-white px-4 py-3 text-sm text-navy outline-none focus:border-blue focus:ring-2 focus:ring-blue/20'
 
 const personalDomains = [
   'gmail.com',
@@ -40,36 +37,83 @@ const personalDomains = [
   'icloud.com',
 ]
 
+const PROJECT_TYPES = [
+  { id: 'Engineering', icon: Code2 },
+  { id: 'Marketing', icon: Megaphone },
+  { id: 'Design', icon: Palette },
+  { id: 'Growth', icon: TrendingUp },
+  { id: 'Student Ambassador', icon: Users },
+  { id: 'Research', icon: BookOpen },
+  { id: 'Other', icon: Briefcase },
+] as const
+
+function mapProjectTypeToRole(type: string): RoleType {
+  switch (type) {
+    case 'Design':
+      return 'designer'
+    case 'Growth':
+    case 'Marketing':
+    case 'Student Ambassador':
+      return 'growth'
+    case 'Research':
+      return 'data'
+    default:
+      return 'developer'
+  }
+}
+
 export default function CompanySignupPage() {
-  const [fullName, setFullName] = useState('')
-  const [title, setTitle] = useState('')
-  const [companyName, setCompanyName] = useState('')
+  const router = useRouter()
+  const [step, setStep] = useState(1)
+  const [userId, setUserId] = useState<string | null>(null)
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [website, setWebsite] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+
+  const [founderFirst, setFounderFirst] = useState('')
+  const [founderLast, setFounderLast] = useState('')
+  const [founderTitle, setFounderTitle] = useState('')
+  const [companyName, setCompanyName] = useState('')
+  const [teamSize, setTeamSize] = useState('')
+  const [fundingStage, setFundingStage] = useState('')
+  const [website, setWebsite] = useState('')
+  const [linkedinUrl, setLinkedinUrl] = useState('')
+  const [pitchDeckUrl, setPitchDeckUrl] = useState('')
+
+  const [projectType, setProjectType] = useState('')
+  const [skills, setSkills] = useState<string[]>([])
+  const [majorRequired, setMajorRequired] = useState(false)
+  const [requiredMajor, setRequiredMajor] = useState('')
+  const [duration, setDuration] = useState('')
+  const [payout, setPayout] = useState('')
+  const [reportingTo, setReportingTo] = useState('')
+  const [hoursPerWeek, setHoursPerWeek] = useState('')
+  const [additionalContext, setAdditionalContext] = useState('')
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
   const [testingMode, setTestingMode] = useState(false)
   const [showTesting, setShowTesting] = useState(false)
-  const [modifiedEmail, setModifiedEmail] = useState<string | null>(null)
+  const [skillWarn, setSkillWarn] = useState(false)
 
   useEffect(() => {
     setShowTesting(isTestingMode())
   }, [])
 
-  async function handleGoogle() {
-    const supabase = createClient()
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/company/callback`,
-      },
-    })
+  const founderName = `${founderFirst.trim()} ${founderLast.trim()}`.trim()
+  const companyInitial = companyName.trim().charAt(0).toUpperCase() || 'C'
+
+  const skillCategories = useMemo(() => SKILL_CATEGORIES, [])
+
+  function toggleSkill(skill: string) {
+    setSkills((prev) =>
+      prev.includes(skill) ? prev.filter((s) => s !== skill) : [...prev, skill]
+    )
+    setSkillWarn(false)
   }
 
-  async function handleSignup(e: React.FormEvent) {
+  async function handleAccount(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError(null)
@@ -84,71 +128,14 @@ export default function CompanySignupPage() {
     }
 
     const supabase = createClient()
-    const signUpOptions = {
-      emailRedirectTo: `${window.location.origin}/company/callback`,
-      data: {
-        full_name: fullName,
-        title,
-        company_name: companyName,
-        website,
-        account_type: 'company',
-      },
-    }
-
-    async function createCompanyRecords(userId: string, accountEmail: string) {
-      const companyInitial = companyName.trim().charAt(0).toUpperCase()
-
-      const { data: newCompany, error: companyError } = await supabase
-        .from('companies')
-        .insert({
-          company_name: companyName.trim(),
-          company_initial: companyInitial,
-          website: website || null,
-          contact_name: fullName.trim(),
-          contact_email: accountEmail.toLowerCase(),
-          contact_title: title.trim(),
-          stage: 'Unknown',
-          status: 'pending',
-          call_booked: false,
-          platform_access: false,
-        })
-        .select('id')
-        .single()
-
-      if (companyError || !newCompany) {
-        console.error('Company creation error:', companyError?.message)
-      }
-
-      const { error: userError } = await supabase.from('company_users').insert({
-        id: userId,
-        email: accountEmail.toLowerCase(),
-        full_name: fullName.trim(),
-        title: title.trim(),
-        company_id: newCompany?.id ?? null,
-      })
-
-      if (userError) {
-        console.error('Company user creation error:', userError.message)
-      }
-
-      await supabase.from('notifications').insert({
-        type: 'new_company_signup',
-        title: 'New company signed up',
-        body: `${fullName} from ${companyName} created an account.`,
-        metadata: {
-          company_id: newCompany?.id,
-          company_name: companyName,
-          contact_email: accountEmail,
-          website: website || null,
-        },
-      })
-    }
-
     let signupEmail = email
     let { data, error: signUpError } = await supabase.auth.signUp({
       email: signupEmail,
       password,
-      options: signUpOptions,
+      options: {
+        emailRedirectTo: `${window.location.origin}/company/callback`,
+        data: { account_type: 'company' },
+      },
     })
 
     if (
@@ -160,17 +147,13 @@ export default function CompanySignupPage() {
       const retry = await supabase.auth.signUp({
         email: signupEmail,
         password,
-        options: signUpOptions,
+        options: {
+          emailRedirectTo: `${window.location.origin}/company/callback`,
+          data: { account_type: 'company' },
+        },
       })
       data = retry.data
       signUpError = retry.error
-      if (!retry.error && retry.data.user) {
-        await createCompanyRecords(retry.data.user.id, signupEmail)
-        setModifiedEmail(signupEmail)
-        setSuccess(true)
-        setLoading(false)
-        return
-      }
     }
 
     if (signUpError) {
@@ -180,191 +163,559 @@ export default function CompanySignupPage() {
     }
 
     if (data.user) {
-      await createCompanyRecords(data.user.id, signupEmail)
+      setUserId(data.user.id)
+      setEmail(signupEmail)
+      setStep(2)
+    }
+    setLoading(false)
+  }
+
+  function validateCompanyProfile() {
+    if (!founderFirst.trim() || !founderLast.trim()) return 'Founder name is required.'
+    if (!founderTitle) return 'Founder title is required.'
+    if (!companyName.trim()) return 'Company name is required.'
+    if (!teamSize) return 'Team size is required.'
+    if (!fundingStage) return 'Funding stage is required.'
+    if (!website.trim()) return 'Company website is required.'
+    return null
+  }
+
+  function validateSprintScope() {
+    if (!projectType) return 'Select a project type.'
+    if (skills.length < 2) return 'Select at least 2 skillsets.'
+    if (majorRequired && !requiredMajor.trim()) return 'Specify required major.'
+    if (!duration) return 'Select sprint duration.'
+    if (!payout || Number(payout) <= 0) return 'Enter a valid stipend amount.'
+    if (!reportingTo) return 'Select who the student reports to.'
+    if (!hoursPerWeek) return 'Select hours per week.'
+    return null
+  }
+
+  async function handleFinalSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const scopeErr = validateSprintScope()
+    if (scopeErr) {
+      setError(scopeErr)
+      if (skills.length < 2) setSkillWarn(true)
+      return
     }
 
-    setSuccess(true)
+    const supabase = createClient()
+    let uid = userId
+    if (!uid) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) {
+        setError('Session expired. Please sign up again.')
+        return
+      }
+      uid = user.id
+    }
+
+    setLoading(true)
+    setError(null)
+
+    const hoursNum = parseInt(hoursPerWeek.replace(/\D/g, ''), 10)
+    const payoutNum = parseInt(payout.replace(/\D/g, ''), 10)
+    const milestoneBase =
+      additionalContext.trim() ||
+      `${projectType} sprint project with focus on ${skills.join(', ')}.`
+    const milestone = majorRequired
+      ? `${milestoneBase} Required major: ${requiredMajor.trim()}.`
+      : milestoneBase
+
+    const { data: newCompany, error: companyError } = await supabase
+      .from('companies')
+      .insert({
+        company_name: companyName.trim(),
+        company_initial: companyInitial,
+        website: website.trim(),
+        stage: fundingStage,
+        funding_stage: fundingStage,
+        contact_name: founderName,
+        contact_email: email.toLowerCase(),
+        contact_title: founderTitle,
+        founder_name: founderName,
+        founder_title: founderTitle,
+        team_size: teamSize,
+        pitch_deck_url: pitchDeckUrl.trim() || null,
+        linkedin_url: linkedinUrl.trim() || null,
+        status: 'pending',
+        call_booked: false,
+        platform_access: true,
+        onboarding_complete: true,
+        onboarding_step: 3,
+        access_granted_at: new Date().toISOString(),
+      })
+      .select('id')
+      .single()
+
+    if (companyError || !newCompany) {
+      setError(companyError?.message ?? 'Could not create company.')
+      setLoading(false)
+      return
+    }
+
+    const { error: userError } = await supabase.from('company_users').insert({
+      id: uid,
+      email: email.toLowerCase(),
+      full_name: founderName,
+      title: founderTitle,
+      company_id: newCompany.id,
+    })
+
+    if (userError) {
+      setError(userError.message)
+      setLoading(false)
+      return
+    }
+
+    const { error: jobError } = await supabase.from('job_postings').insert({
+      company_id: newCompany.id,
+      company_name: companyName.trim(),
+      company_initial: companyInitial,
+      company_stage: fundingStage,
+      company_tags: [projectType],
+      role_title: `${projectType} Sprint`,
+      role_type: mapProjectTypeToRole(projectType),
+      lead_engineer_name: founderName,
+      lead_engineer_title: reportingTo,
+      tech_stack: skills,
+      sprint_duration: `${duration} Scope`,
+      hours_per_week: hoursNum,
+      payout_amount: payoutNum,
+      starts_in_days: 7,
+      milestone_objective: milestone,
+      is_active: false,
+      approval_status: 'pending',
+      submitted_by: 'company',
+      deleted: false,
+    })
+
+    if (jobError) {
+      setError(jobError.message)
+      setLoading(false)
+      return
+    }
+
+    await supabase.from('notifications').insert({
+      type: 'new_company_signup',
+      title: 'New founder signed up — sprint scope ready for review',
+      body: `${founderName} from ${companyName} submitted a ${projectType} sprint project.`,
+      metadata: {
+        company_id: newCompany.id,
+        company_name: companyName,
+      },
+    })
+
     setLoading(false)
+    router.push('/company/dashboard')
   }
 
   return (
     <div className="min-h-screen bg-canvas">
       <CompanyAuthLeftPanel />
       <div className="lg:ml-[50%]">
-        <div className="mx-auto max-w-sm px-6 py-16">
+        <div className="mx-auto max-w-md px-6 py-16">
           {showTesting ? (
             <TestingBanner enabled={testingMode} onChange={setTestingMode} />
           ) : null}
-          <h1 className="text-2xl font-bold text-navy">
-            Create your company account
-          </h1>
-          <p className="mt-2 text-sm text-slate">
+
+          <div className="mb-8 flex gap-2">
+            {[1, 2, 3].map((s) => (
+              <div
+                key={s}
+                className={`h-1.5 flex-1 rounded-full ${
+                  step >= s ? 'bg-blue' : 'bg-line'
+                }`}
+              />
+            ))}
+          </div>
+
+          {step === 1 ? (
+            <>
+              <h1 className="text-2xl font-bold text-navy">
+                Create your founder account
+              </h1>
+              <form onSubmit={handleAccount} className="mt-8 flex flex-col gap-4">
+                <input
+                  required
+                  type="email"
+                  placeholder="Email *"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className={inputClass}
+                />
+                <div className="relative">
+                  <input
+                    required
+                    type={showPassword ? 'text' : 'password'}
+                    minLength={8}
+                    placeholder="Password (min 8 characters) *"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={`${inputClass} pr-12`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                <div className="flex items-start gap-2">
+                  <input required type="checkbox" id="terms-co" className="mt-1" />
+                  <label htmlFor="terms-co" className="text-sm text-slate">
+                    I agree to the Terms and Privacy Policy
+                  </label>
+                </div>
+                {error ? (
+                  <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {error}
+                  </div>
+                ) : null}
+                <motion.button
+                  type="submit"
+                  disabled={loading}
+                  className="rounded-full bg-blue py-3.5 font-bold text-white hover:bg-blue/90 disabled:opacity-70"
+                >
+                  {loading ? <Loader2 className="mx-auto animate-spin" /> : 'Continue →'}
+                </motion.button>
+              </form>
+            </>
+          ) : null}
+
+          {step === 2 ? (
+            <>
+              <h2 className="text-xl font-bold text-navy">
+                Tell us about your company
+              </h2>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  const err = validateCompanyProfile()
+                  if (err) {
+                    setError(err)
+                    return
+                  }
+                  setError(null)
+                  setStep(3)
+                }}
+                className="mt-8 flex flex-col gap-4"
+              >
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    required
+                    placeholder="First name *"
+                    value={founderFirst}
+                    onChange={(e) => setFounderFirst(e.target.value)}
+                    className={inputClass}
+                  />
+                  <input
+                    required
+                    placeholder="Last name *"
+                    value={founderLast}
+                    onChange={(e) => setFounderLast(e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+                <select
+                  required
+                  value={founderTitle}
+                  onChange={(e) => setFounderTitle(e.target.value)}
+                  className={inputClass}
+                >
+                  <option value="">Founder title *</option>
+                  {[
+                    'Founder',
+                    'Co-Founder',
+                    'CEO',
+                    'CTO',
+                    'Head of Product',
+                    'Other',
+                  ].map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  required
+                  placeholder="Company name *"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  className={inputClass}
+                />
+                <select
+                  required
+                  value={teamSize}
+                  onChange={(e) => setTeamSize(e.target.value)}
+                  className={inputClass}
+                >
+                  <option value="">Team size *</option>
+                  {['1-5', '6-15', '16-50', '50+'].map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  required
+                  value={fundingStage}
+                  onChange={(e) => setFundingStage(e.target.value)}
+                  className={inputClass}
+                >
+                  <option value="">Funding stage *</option>
+                  {[
+                    'Pre-Seed',
+                    'Seed Stage',
+                    'Series A',
+                    'Series B',
+                    'YC',
+                    'Bootstrapped',
+                    'Other',
+                  ].map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  required
+                  type="url"
+                  placeholder="https://yourcompany.com"
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
+                  className={inputClass}
+                />
+                <input
+                  type="url"
+                  placeholder="https://linkedin.com/company/..."
+                  value={linkedinUrl}
+                  onChange={(e) => setLinkedinUrl(e.target.value)}
+                  className={inputClass}
+                />
+                <div>
+                  <div className="relative">
+                    <Presentation
+                      size={18}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate/50"
+                    />
+                    <input
+                      type="url"
+                      placeholder="https://drive.google.com/... or Notion link"
+                      value={pitchDeckUrl}
+                      onChange={(e) => setPitchDeckUrl(e.target.value)}
+                      className={`${inputClass} pl-11`}
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-slate/60">
+                    Share a deck so we can match you better. Not required.
+                  </p>
+                </div>
+                {error ? (
+                  <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {error}
+                  </div>
+                ) : null}
+                <button
+                  type="submit"
+                  className="rounded-full bg-blue py-3.5 font-bold text-white"
+                >
+                  Continue →
+                </button>
+              </form>
+            </>
+          ) : null}
+
+          {step === 3 ? (
+            <>
+              <h2 className="text-xl font-bold text-navy">
+                Define your sprint project
+              </h2>
+              <p className="mt-1 text-sm text-slate">Step 3 of 3</p>
+              <form
+                onSubmit={handleFinalSubmit}
+                className="mt-8 flex flex-col gap-4"
+              >
+                <p className="text-sm font-semibold text-navy">Project type *</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {PROJECT_TYPES.map(({ id, icon: Icon }) => {
+                    const selected = projectType === id
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => setProjectType(id)}
+                        className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-sm ${
+                          selected
+                            ? 'border-navy bg-navy text-white'
+                            : 'border-line bg-white text-slate'
+                        }`}
+                      >
+                        <Icon size={16} />
+                        {id}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-navy">
+                    Required skillsets *
+                  </p>
+                  {Object.entries(skillCategories).map(([cat, list]) => (
+                    <div key={cat} className="mb-3 mt-2">
+                      <p className="mb-1 text-xs font-bold text-navy">{cat}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {list.map((skill) => {
+                          const on = skills.includes(skill)
+                          return (
+                            <button
+                              key={skill}
+                              type="button"
+                              onClick={() => toggleSkill(skill)}
+                              className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs ${
+                                on
+                                  ? 'bg-navy text-white'
+                                  : 'border border-line bg-white text-slate'
+                              }`}
+                            >
+                              {on ? <Check size={10} /> : null}
+                              {skill}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                  {skillWarn ? (
+                    <p className="text-sm text-red-500">Select at least 2 skillsets.</p>
+                  ) : null}
+                </div>
+
+                <Toggle
+                  checked={majorRequired}
+                  onChange={setMajorRequired}
+                  label="Does this role require a specific major?"
+                />
+                {majorRequired ? (
+                  <input
+                    required
+                    placeholder="e.g. Computer Science, Business"
+                    value={requiredMajor}
+                    onChange={(e) => setRequiredMajor(e.target.value)}
+                    className={inputClass}
+                  />
+                ) : null}
+
+                <select
+                  required
+                  value={duration}
+                  onChange={(e) => setDuration(e.target.value)}
+                  className={inputClass}
+                >
+                  <option value="">Sprint duration *</option>
+                  {['1 Week', '2 Weeks', '3 Weeks', '4 Weeks', 'Flexible'].map(
+                    (d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    )
+                  )}
+                </select>
+
+                <div>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate">
+                      $
+                    </span>
+                    <input
+                      required
+                      inputMode="numeric"
+                      placeholder="e.g. 2000"
+                      value={payout}
+                      onChange={(e) => setPayout(e.target.value)}
+                      className={`${inputClass} pl-8`}
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-slate/60">
+                    Total stipend paid to the student upon completion
+                  </p>
+                </div>
+
+                <select
+                  required
+                  value={reportingTo}
+                  onChange={(e) => setReportingTo(e.target.value)}
+                  className={inputClass}
+                >
+                  <option value="">Reporting to *</option>
+                  {[
+                    'Founder',
+                    'Co-Founder',
+                    'Head of Engineering',
+                    'Head of Marketing',
+                    'CEO',
+                    'Other',
+                  ].map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  required
+                  value={hoursPerWeek}
+                  onChange={(e) => setHoursPerWeek(e.target.value)}
+                  className={inputClass}
+                >
+                  <option value="">Hours per week *</option>
+                  {['10 hrs', '15 hrs', '20 hrs'].map((h) => (
+                    <option key={h} value={h}>
+                      {h}
+                    </option>
+                  ))}
+                </select>
+
+                <textarea
+                  rows={3}
+                  placeholder="Team context, tools used, specific deliverables expected..."
+                  value={additionalContext}
+                  onChange={(e) => setAdditionalContext(e.target.value)}
+                  className={inputClass}
+                />
+
+                {error ? (
+                  <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {error}
+                  </div>
+                ) : null}
+
+                <motion.button
+                  type="submit"
+                  disabled={loading}
+                  className="rounded-full bg-blue py-3.5 font-bold text-white disabled:opacity-70"
+                >
+                  {loading ? (
+                    <Loader2 className="mx-auto animate-spin" />
+                  ) : (
+                    'Submit & Get Matched →'
+                  )}
+                </motion.button>
+              </form>
+            </>
+          ) : null}
+
+          <p className="mt-6 text-sm text-slate">
             Already have an account?{' '}
             <Link href="/company/login" className="font-semibold text-blue">
               Log in
             </Link>
           </p>
-
-          {success ? (
-            <div className="mt-8 text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-blue/10">
-                <Building2 size={48} className="text-blue" />
-              </div>
-              <h3 className="mt-6 text-xl font-bold text-navy">
-                Account created — check your email
-              </h3>
-              <p className="mt-2 text-sm text-slate">
-                We sent a confirmation link to{' '}
-                <span className="font-semibold text-navy">{email}</span>. Once
-                verified, our team will be in touch to schedule your 20-minute
-                intro call.
-              </p>
-              <div className="mt-5 rounded-xl bg-canvas p-5 text-left">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate/70">
-                  What happens next
-                </p>
-                {[
-                  'Confirm your email',
-                  'We schedule your 20-min intro call',
-                  'Our team sets up your company profile',
-                  'Receive matched student shortlist',
-                ].map((step, i) => (
-                  <div key={step} className="mt-2 flex items-center gap-3">
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue text-[10px] font-bold text-white">
-                      {i + 1}
-                    </span>
-                    <span className="text-sm text-navy">{step}</span>
-                  </div>
-                ))}
-              </div>
-              <Link
-                href="/book"
-                className="mt-5 inline-block rounded-full bg-blue px-6 py-3 text-sm font-semibold text-white hover:bg-blue/90"
-              >
-                Don&apos;t want to wait? Book your intro call now →
-              </Link>
-              {modifiedEmail ? (
-                <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-600">
-                  Testing mode: account created as {modifiedEmail}
-                </p>
-              ) : null}
-            </div>
-          ) : (
-            <form onSubmit={handleSignup} className="mt-8 flex flex-col gap-4">
-              <div className="grid grid-cols-2 gap-3">
-                <input
-                  required
-                  placeholder="Your full name *"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="rounded-xl border border-line bg-white px-4 py-3 text-sm outline-none focus:border-blue focus:ring-2 focus:ring-blue/20"
-                />
-                <input
-                  required
-                  placeholder='Title (e.g. "CTO") *'
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="rounded-xl border border-line bg-white px-4 py-3 text-sm outline-none focus:border-blue focus:ring-2 focus:ring-blue/20"
-                />
-              </div>
-              <input
-                required
-                placeholder="Company name *"
-                value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
-                className="rounded-xl border border-line bg-white px-4 py-3 text-sm outline-none focus:border-blue focus:ring-2 focus:ring-blue/20"
-              />
-              <div>
-                <input
-                  required
-                  type="email"
-                  placeholder="Work email *"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-xl border border-line bg-white px-4 py-3 text-sm outline-none focus:border-blue focus:ring-2 focus:ring-blue/20"
-                />
-                <p className="mt-1 text-xs text-slate/60">
-                  Use your company email address
-                </p>
-                {testingMode ? (
-                  <p className="mt-1 text-xs text-amber-600">
-                    Testing: personal emails accepted
-                  </p>
-                ) : null}
-              </div>
-              <div className="relative">
-                <input
-                  required
-                  type={showPassword ? 'text' : 'password'}
-                  minLength={8}
-                  placeholder="Password (min 8 characters) *"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-xl border border-line bg-white px-4 py-3 pr-12 text-sm outline-none focus:border-blue focus:ring-2 focus:ring-blue/20"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate"
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-              <input
-                type="url"
-                placeholder="https://yourcompany.com"
-                value={website}
-                onChange={(e) => setWebsite(e.target.value)}
-                className="rounded-xl border border-line bg-white px-4 py-3 text-sm outline-none focus:border-blue focus:ring-2 focus:ring-blue/20"
-              />
-              <div className="flex items-start gap-2">
-                <input required type="checkbox" id="terms-co" className="mt-1" />
-                <label htmlFor="terms-co" className="text-sm text-slate">
-                  I agree to the{' '}
-                  <Link href="/terms" className="text-blue">
-                    Terms
-                  </Link>{' '}
-                  and{' '}
-                  <Link href="/privacy" className="text-blue">
-                    Privacy Policy
-                  </Link>
-                </label>
-              </div>
-              {error ? (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {error}
-                </div>
-              ) : null}
-              <motion.button
-                type="submit"
-                disabled={loading}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.97 }}
-                className="flex w-full items-center justify-center gap-2 rounded-full bg-blue py-3.5 font-bold text-white hover:bg-blue/90 disabled:opacity-70"
-              >
-                {loading ? <Loader2 size={20} className="animate-spin" /> : null}
-                Create Company Account →
-              </motion.button>
-            </form>
-          )}
-
-          {!success ? (
-            <>
-              <div className="mt-6 flex items-center gap-3">
-                <div className="h-px flex-1 bg-line" />
-                <span className="text-xs text-slate">or continue with</span>
-                <div className="h-px flex-1 bg-line" />
-              </div>
-              <button
-                type="button"
-                onClick={handleGoogle}
-                className="mt-3 flex w-full items-center justify-center gap-3 rounded-full border border-line bg-white py-3 text-sm font-semibold text-navy hover:shadow-md"
-              >
-                <GoogleIcon />
-                Continue with Google
-              </button>
-            </>
-          ) : null}
         </div>
       </div>
     </div>

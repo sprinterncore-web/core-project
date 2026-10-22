@@ -214,7 +214,9 @@ export async function getPendingJobPostings(): Promise<JobPosting[]> {
   const supabase = createClient()
   const { data } = await supabase
     .from('job_postings')
-    .select('*, company:companies(company_name)')
+    .select(
+      '*, company:companies(company_name, pitch_deck_url, contact_name, founder_name)'
+    )
     .eq('approval_status', 'pending')
     .eq('submitted_by', 'company')
     .order('created_at', { ascending: true })

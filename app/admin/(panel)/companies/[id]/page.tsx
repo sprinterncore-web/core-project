@@ -163,6 +163,50 @@ export default function EditCompanyPage() {
         ) : null}
       </section>
 
+      {jobs.some((j) => j.submitted_by === 'company') ? (
+        <section className="mt-8 rounded-2xl border border-amber-200 bg-amber-50/40 p-6">
+          <h3 className="font-bold text-navy">
+            Sprint Scope (submitted by founder)
+          </h3>
+          <p className="mt-1 text-sm text-slate">
+            Auto-created at founder signup — review before approving.
+          </p>
+          <ul className="mt-4 space-y-4">
+            {jobs
+              .filter((j) => j.submitted_by === 'company')
+              .map((j) => (
+                <li
+                  key={j.id}
+                  className="rounded-xl border border-line bg-white p-4"
+                >
+                  <p className="font-semibold text-navy">{j.role_title}</p>
+                  <p className="mt-1 text-sm text-slate">
+                    {j.sprint_duration} · ${j.payout_amount.toLocaleString()} ·{' '}
+                    {j.hours_per_week} hrs/wk
+                  </p>
+                  <p className="mt-2 text-sm text-navy">{j.milestone_objective}</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {(j.tech_stack ?? []).map((sk) => (
+                      <span
+                        key={sk}
+                        className="rounded-full bg-canvas px-2 py-0.5 text-xs text-navy"
+                      >
+                        {sk}
+                      </span>
+                    ))}
+                  </div>
+                  <Link
+                    href={`/admin/jobs/${j.id}`}
+                    className="mt-4 inline-block text-sm font-semibold text-blue hover:underline"
+                  >
+                    Edit in Job Listings →
+                  </Link>
+                </li>
+              ))}
+          </ul>
+        </section>
+      ) : null}
+
       <section className="mt-12 rounded-2xl border border-line bg-white p-6">
         <div className="flex items-center justify-between">
           <h3 className="font-bold text-navy">Job Listings</h3>

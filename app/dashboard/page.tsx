@@ -73,7 +73,6 @@ export default function DashboardPage() {
         router.replace(`/onboarding/step/${Math.max(1, step + 1)}`)
         return
       }
-
       const matchList = await getMatchesForStudent(authUser.id)
       setMatches(matchList)
       await refreshApplications(authUser.id)

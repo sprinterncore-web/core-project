@@ -57,6 +57,18 @@ export function CompanyForm({
   const [platformAccess, setPlatformAccess] = useState(
     initial?.platform_access ?? false
   )
+  const [teamSize, setTeamSize] = useState(initial?.team_size ?? '')
+  const [pitchDeckUrl, setPitchDeckUrl] = useState(initial?.pitch_deck_url ?? '')
+  const [linkedinUrl, setLinkedinUrl] = useState(initial?.linkedin_url ?? '')
+  const [fundingStage, setFundingStage] = useState(
+    initial?.funding_stage ?? initial?.stage ?? 'Seed Stage'
+  )
+  const [founderName, setFounderName] = useState(
+    initial?.founder_name ?? initial?.contact_name ?? ''
+  )
+  const [founderTitle, setFounderTitle] = useState(
+    initial?.founder_title ?? initial?.contact_title ?? ''
+  )
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -87,6 +99,14 @@ export function CompanyForm({
       access_granted_at: platformAccess
         ? new Date().toISOString()
         : initial?.access_granted_at ?? null,
+      team_size: teamSize || null,
+      pitch_deck_url: pitchDeckUrl.trim() || null,
+      linkedin_url: linkedinUrl.trim() || null,
+      funding_stage: fundingStage,
+      founder_name: founderName.trim() || null,
+      founder_title: founderTitle.trim() || null,
+      onboarding_complete: initial?.onboarding_complete ?? true,
+      onboarding_step: initial?.onboarding_step ?? 3,
     })
     setSaving(false)
   }
@@ -160,6 +180,96 @@ export function CompanyForm({
           placeholder="Description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
+        />
+      </section>
+
+      <section>
+        <h2 className="mb-4 font-bold text-navy">Founder</h2>
+        <div className="grid grid-cols-2 gap-4">
+          <input
+            required
+            className={inputClass}
+            placeholder="Founder name *"
+            value={founderName}
+            onChange={(e) => {
+              setFounderName(e.target.value)
+              setContactName(e.target.value)
+            }}
+          />
+          <select
+            className={inputClass}
+            value={founderTitle}
+            onChange={(e) => {
+              setFounderTitle(e.target.value)
+              setContactTitle(e.target.value)
+            }}
+          >
+            <option value="">Founder title</option>
+            {[
+              'Founder',
+              'Co-Founder',
+              'CEO',
+              'CTO',
+              'Head of Product',
+              'Other',
+            ].map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-4">
+          <select
+            className={inputClass}
+            value={teamSize}
+            onChange={(e) => setTeamSize(e.target.value)}
+          >
+            <option value="">Team size</option>
+            {['1-5', '6-15', '16-50', '50+'].map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+          <select
+            className={inputClass}
+            value={fundingStage}
+            onChange={(e) => {
+              setFundingStage(e.target.value)
+              setStage(e.target.value)
+            }}
+          >
+            {STAGES.concat(['YC', 'Pre-Seed']).filter(
+              (s, i, arr) => arr.indexOf(s) === i
+            ).map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </div>
+        <input
+          className={`${inputClass} mt-4`}
+          placeholder="Company LinkedIn URL"
+          value={linkedinUrl}
+          onChange={(e) => setLinkedinUrl(e.target.value)}
+        />
+        {pitchDeckUrl ? (
+          <a
+            href={pitchDeckUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-block text-sm font-semibold text-blue"
+          >
+            View Pitch Deck →
+          </a>
+        ) : null}
+        <input
+          className={`${inputClass} mt-2`}
+          placeholder="Pitch deck URL"
+          value={pitchDeckUrl}
+          onChange={(e) => setPitchDeckUrl(e.target.value)}
         />
       </section>
 

@@ -1,9 +1,9 @@
-import { Check, Zap } from 'lucide-react'
+import { Check, Rocket, Zap } from 'lucide-react'
 
 const features = [
-  'No intake forms — just a 20-min call',
-  'Curated student shortlist in 48hrs',
-  'First commits within 96 hours of kickoff',
+  'Get matched with vetted students',
+  'Book an intro call — no forms',
+  'Confirm sprint & launch in days',
 ]
 
 export function CompanyAuthLeftPanel() {
@@ -18,13 +18,13 @@ export function CompanyAuthLeftPanel() {
           <span className="text-xl font-bold text-teal">ern</span>
         </div>
 
-        <h2 className="mt-12 text-3xl font-bold text-white">
-          Partner with top student builders
+        <div className="mt-12 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue/15">
+          <Rocket size={32} className="text-blue" />
+        </div>
+
+        <h2 className="mt-8 text-3xl font-bold text-white">
+          Launch your first sprint
         </h2>
-        <p className="mt-3 max-w-xs text-base text-white/60">
-          Book a call, we handle onboarding, you get matched talent ready to
-          sprint.
-        </p>
 
         <ul className="mt-10 space-y-4">
           {features.map((text) => (
@@ -34,13 +34,6 @@ export function CompanyAuthLeftPanel() {
             </li>
           ))}
         </ul>
-
-        <div className="mt-auto pt-12">
-          <p className="text-xs text-white/30">Trusted by</p>
-          <p className="mt-2 text-xs text-white/40">
-            Bland · DualEntry · Rocketlane · YC companies
-          </p>
-        </div>
       </div>
     </div>
   )

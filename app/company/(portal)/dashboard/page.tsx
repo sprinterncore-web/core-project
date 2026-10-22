@@ -79,54 +79,40 @@ export default function CompanyDashboardPage() {
     )
   }
 
-  const displayCompany = company?.company_name ?? 'Your Company'
+  if (!company || company.onboarding_complete === false) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue border-t-transparent" />
+        <p className="text-sm text-slate">Finishing setup...</p>
+      </div>
+    )
+  }
+
+  const displayCompany = company.company_name
+  const fundingLabel = company.funding_stage ?? company.stage
+  const hasPendingSprint = jobs.some((j) => j.approval_status === 'pending')
 
   return (
     <>
       <CompanyPortalNav companyName={displayCompany} userName={userName} />
       <main className="mx-auto max-w-[1280px] px-6 py-10">
-        {!company ? (
-          <div className="mx-auto mt-10 max-w-2xl rounded-3xl border border-line bg-white p-12 text-center">
-            <Clock size={48} className="mx-auto text-slate/40" />
-            <h2 className="mt-6 text-2xl font-bold text-navy">
-              Account pending setup
-            </h2>
-            <p className="mx-auto mt-3 max-w-md text-base text-slate">
-              Our team is setting up your company profile after your intro call.
-              You&apos;ll have full access to your sprint dashboard and matched
-              student profiles within 24 hours.
-            </p>
-            <Link
-              href="/book"
-              className="mt-8 inline-block rounded-full bg-blue px-8 py-3.5 font-semibold text-white hover:bg-blue/90"
-            >
-              Book your intro call
-            </Link>
-            <div className="mt-8 rounded-xl bg-canvas p-5 text-left">
-              {[
-                'Confirm your email',
-                '20-min intro call with our team',
-                'Company profile linked to your account',
-                'Post sprint roles & receive matches',
-              ].map((step, i) => (
-                <div key={step} className="mt-2 flex items-center gap-3">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue text-[10px] font-bold text-white">
-                    {i + 1}
-                  </span>
-                  <span className="text-sm text-navy">{step}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
           <>
+            {hasPendingSprint ? (
+              <div className="mb-8 flex items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-6 py-4">
+                <Clock size={18} className="mt-0.5 shrink-0 text-amber-600" />
+                <p className="text-sm text-amber-800">
+                  Your sprint project is under review. Our team will approve it
+                  within 24 hours — you&apos;ll be notified.
+                </p>
+              </div>
+            ) : null}
             <div className="mb-10 flex flex-wrap items-start justify-between gap-4">
               <div>
                 <h1 className="text-3xl font-bold text-navy">
-                  Welcome back, {firstName}
+                  Welcome, {firstName}
                 </h1>
                 <p className="mt-1 text-base text-slate">
-                  {company.company_name} · {company.stage}
+                  {company.company_name} · {fundingLabel}
                 </p>
               </div>
               <Link
@@ -235,7 +221,6 @@ export default function CompanyDashboardPage() {
               </div>
             </div>
           </>
-        )}
       </main>
     </>
   )
