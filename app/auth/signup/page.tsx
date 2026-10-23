@@ -124,20 +124,23 @@ export default function SignupPage() {
       return
     }
 
-    if (!userId) {
-      const supabase = createClient()
+    const supabase = createClient()
+    let id = userId
+    if (!id) {
       const {
         data: { user },
       } = await supabase.auth.getUser()
-      if (!user) {
-        setError('Session expired. Please sign up again.')
-        return
-      }
-      setUserId(user.id)
+      id = user?.id ?? null
     }
+    if (!id) {
+      setError(
+        'Could not start a session after signup. Confirm your email, or enable testing mode and try again.'
+      )
+      return
+    }
+    setUserId(id)
 
     setLoading(true)
-    const id = userId ?? ''
     const { error: updateError } = await updateProfile(id, {
       email,
       full_name: `${firstName.trim()} ${lastName.trim()}`,
@@ -172,7 +175,10 @@ export default function SignupPage() {
 
           {step === 1 ? (
             <>
-              <h1 className="text-2xl font-bold text-navy">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate/50">
+                Step 1 of 2
+              </p>
+              <h1 className="mt-1 text-2xl font-bold text-navy">
                 Create your account
               </h1>
               <p className="mt-2 text-sm text-slate">

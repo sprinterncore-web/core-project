@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { UNIVERSITY_NAMES_FALLBACK } from '@/data/universities-fallback'
 import { getUniversities } from '@/lib/supabase/universities'
 
 const inputClass =
@@ -13,93 +14,65 @@ type Props = {
 }
 
 export function UniversitySelect({ value, onChange, required }: Props) {
-  const [universities, setUniversities] = useState<
-    { id: number; name: string }[]
-  >([])
-  const [open, setOpen] = useState(false)
-  const [query, setQuery] = useState(value)
-  const [otherText, setOtherText] = useState('')
-  const containerRef = useRef<HTMLDivElement>(null)
+  const [options, setOptions] = useState<string[]>([...UNIVERSITY_NAMES_FALLBACK])
+  const [customUniversity, setCustomUniversity] = useState('')
 
   useEffect(() => {
-    getUniversities().then(setUniversities)
+    getUniversities().then((rows) => {
+      if (rows.length > 0) {
+        const names = rows.map((u) => u.name)
+        if (!names.includes('Other')) names.push('Other')
+        setOptions(names)
+      }
+    })
   }, [])
 
-  useEffect(() => {
-    if (!open) setQuery(value)
-  }, [value, open])
-
-  useEffect(() => {
-    function onDocClick(e: MouseEvent) {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
-      ) {
-        setOpen(false)
-        setQuery(value)
-      }
-    }
-    document.addEventListener('mousedown', onDocClick)
-    return () => document.removeEventListener('mousedown', onDocClick)
-  }, [value])
-
-  const filtered = universities.filter((u) =>
-    u.name.toLowerCase().includes(query.toLowerCase())
-  )
-
-  const showOther = value === 'Other' || otherText.length > 0
-
-  function selectOption(name: string) {
-    if (name === 'Other') {
-      onChange('Other')
-      setQuery('Other')
-    } else {
-      onChange(name)
-      setQuery(name)
-      setOtherText('')
-    }
-    setOpen(false)
-  }
+  const selectValue =
+    value === 'Other' || (value && !options.includes(value))
+      ? 'Other'
+      : value
 
   return (
-    <div ref={containerRef} className="relative">
-      <input
-        required={required && value !== 'Other'}
+    <div>
+      <label className="mb-1.5 block text-sm font-semibold text-navy">
+        University {required ? '*' : ''}
+      </label>
+      <select
+        required={required}
         className={inputClass}
-        placeholder="Search your university *"
-        value={open ? query : value || query}
+        value={selectValue}
         onChange={(e) => {
-          setQuery(e.target.value)
-          setOpen(true)
+          const next = e.target.value
+          if (next === 'Other') {
+            onChange('Other')
+            setCustomUniversity('')
+          } else {
+            onChange(next)
+            setCustomUniversity('')
+          }
         }}
-        onFocus={() => setOpen(true)}
-      />
-      {open && filtered.length > 0 ? (
-        <div className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-xl border border-line bg-white shadow-lg">
-          {filtered.map((u) => (
-            <button
-              key={u.id}
-              type="button"
-              className="w-full px-4 py-2.5 text-left text-sm text-navy hover:bg-canvas"
-              onClick={() => selectOption(u.name)}
-            >
-              {u.name}
-            </button>
-          ))}
-        </div>
-      ) : null}
-      {showOther ? (
+      >
+        <option value="" disabled>
+          Select your university
+        </option>
+        {options.map((name) => (
+          <option key={name} value={name}>
+            {name}
+          </option>
+        ))}
+      </select>
+      {selectValue === 'Other' && (
         <input
           required={required}
           className={`${inputClass} mt-3`}
           placeholder="Enter your university name *"
-          value={otherText}
+          value={customUniversity}
           onChange={(e) => {
-            setOtherText(e.target.value)
+            setCustomUniversity(e.target.value)
             onChange(e.target.value.trim() || 'Other')
           }}
         />
-      ) : null}
+      )}
     </div>
   )
 }
