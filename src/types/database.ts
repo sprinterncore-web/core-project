@@ -69,6 +69,35 @@ export interface Profile {
   resume_url: string | null
   supplemental_interests: string | null
   required_major?: boolean
+  portal_access?: boolean
+  waitlist_submitted_at?: string | null
+}
+
+export type WaitlistStatus = 'waitlist' | 'contacted' | 'onboarded'
+
+export interface CompanyWaitlist {
+  id: string
+  created_at: string
+  first_name: string
+  last_name: string
+  email: string
+  founder_title: string
+  company_name: string
+  team_size: string
+  website: string | null
+  linkedin_url: string | null
+  project_type: string
+  skills: string[]
+  requires_specific_major: boolean
+  required_major: string | null
+  sprint_duration: string
+  payout_amount: number | null
+  hours_per_week: number | null
+  reporting_to: string | null
+  additional_context: string | null
+  status: WaitlistStatus
+  notes: string | null
+  calendly_booked: boolean
 }
 
 export interface Company {

@@ -122,6 +122,15 @@ export default function CompanyLoginPage() {
             </p>
           ) : null}
 
+          {showTesting ? (
+            <Link
+              href="/company/signup/portal"
+              className="mt-4 block text-center text-xs font-semibold text-blue hover:underline"
+            >
+              Dev: create portal account (3-step auth signup)
+            </Link>
+          ) : null}
+
           <form onSubmit={handleLogin} className="mt-8 flex flex-col gap-4">
             <input
               required

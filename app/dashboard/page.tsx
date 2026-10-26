@@ -67,6 +67,11 @@ export default function DashboardPage() {
       const prof = await getProfile(authUser.id)
       setProfile(prof)
 
+      if (prof && prof.portal_access === false && !isTestingMode()) {
+        router.replace('/waitlist')
+        return
+      }
+
       const step = prof?.onboarding_step ?? 0
       const complete = prof?.onboarding_complete ?? false
       if (!complete && step < 4) {

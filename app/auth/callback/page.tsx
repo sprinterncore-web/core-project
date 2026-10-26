@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2, XCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { verifyCurrentUserIsAdmin } from '@/lib/actions/verify-admin'
+import { isTestingMode } from '@/lib/testing'
 
 function CallbackContent() {
   const router = useRouter()
@@ -67,9 +68,15 @@ function CallbackContent() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('onboarding_complete, onboarding_step')
+        .select('onboarding_complete, onboarding_step, portal_access')
         .eq('id', user.id)
         .maybeSingle()
+
+      const testing = isTestingMode()
+      if (profile && profile.portal_access === false && !testing) {
+        router.replace('/waitlist')
+        return
+      }
 
       if (profile?.onboarding_complete) {
         router.replace('/dashboard')

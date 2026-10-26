@@ -12,3 +12,8 @@ export function isTestingMode(): boolean {
 }
 
 export const TESTING_MODE_AVAILABLE = true
+
+/** Server/middleware: skip waitlist portal gate on local dev. */
+export function isLocalDevHostname(hostname: string): boolean {
+  return hostname === 'localhost' || hostname === '127.0.0.1'
+}

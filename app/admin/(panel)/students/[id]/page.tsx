@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { Loader2 } from 'lucide-react'
+import { Clock, Loader2 } from 'lucide-react'
 import { AdminShell } from '@/components/admin/AdminShell'
 import { DeleteConfirmModal } from '@/components/ui/DeleteConfirmModal'
 import { Toast } from '@/components/ui/Toast'
@@ -55,6 +55,19 @@ export default function AdminStudentDetailPage() {
     }
     load()
   }, [id])
+
+  async function grantPortalAccess() {
+    const { error } = await updateProfile(id, { portal_access: true })
+    setToast({
+      message: error ? error : 'Portal access granted',
+      type: error ? 'error' : 'success',
+      visible: true,
+    })
+    if (!error && profile) {
+      setProfile({ ...profile, portal_access: true })
+    }
+    setTimeout(() => setToast((t) => ({ ...t, visible: false })), 2500)
+  }
 
   async function saveProfileFields() {
     setSavingProfile(true)
@@ -126,6 +139,22 @@ export default function AdminStudentDetailPage() {
       >
         ← Back to Students
       </Link>
+
+      {profile.portal_access === false ? (
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-6">
+          <p className="text-sm font-semibold text-amber-800">
+            <Clock size={20} className="mr-2 inline text-amber-600" />
+            This student is on the waitlist — no portal access yet.
+          </p>
+          <button
+            type="button"
+            onClick={grantPortalAccess}
+            className="rounded-full bg-teal px-5 py-2.5 text-sm font-semibold text-white"
+          >
+            Grant Portal Access
+          </button>
+        </div>
+      ) : null}
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-5 lg:col-span-2">

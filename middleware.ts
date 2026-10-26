@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { isAdminUserId } from '@/lib/supabase/service'
+import { isLocalDevHostname } from '@/lib/testing'
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -31,6 +32,7 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   const pathname = request.nextUrl.pathname
+  const skipWaitlistGate = isLocalDevHostname(request.nextUrl.hostname)
 
   const isPublicAdminRoute =
     pathname === '/admin/login' || pathname === '/admin/signup'
@@ -46,6 +48,26 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = '/auth/login'
     return NextResponse.redirect(url)
+  }
+
+  if (!user && pathname.startsWith('/waitlist')) {
+    return NextResponse.redirect(new URL('/auth/login', request.url))
+  }
+
+  if (
+    user &&
+    !skipWaitlistGate &&
+    (pathname.startsWith('/dashboard') || pathname.startsWith('/onboarding'))
+  ) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('portal_access')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    if (profile && profile.portal_access === false) {
+      return NextResponse.redirect(new URL('/waitlist', request.url))
+    }
   }
 
   if (!isPublicAdminRoute && pathname.startsWith('/admin')) {
@@ -90,11 +112,17 @@ export async function middleware(request: NextRequest) {
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('onboarding_complete, onboarding_step')
+      .select('onboarding_complete, onboarding_step, portal_access')
       .eq('id', user.id)
       .maybeSingle()
 
-    if (!profile?.onboarding_complete) {
+    if (
+      profile &&
+      profile.portal_access === false &&
+      !skipWaitlistGate
+    ) {
+      url.pathname = '/waitlist'
+    } else if (!profile?.onboarding_complete) {
       const step = profile?.onboarding_step ?? 0
       url.pathname = `/onboarding/step/${Math.max(1, step + 1)}`
     } else {

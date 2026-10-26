@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Check, Eye, EyeOff, FileText, Loader2 } from 'lucide-react'
+import { Check, Eye, EyeOff, FileText, Loader2, PartyPopper } from 'lucide-react'
 import { AuthLeftPanel } from '@/components/auth/AuthLeftPanel'
 import { UniversitySelect } from '@/components/ui/UniversitySelect'
 import { createClient } from '@/lib/supabase/client'
@@ -37,6 +37,7 @@ export default function SignupPage() {
   const [testingMode, setTestingMode] = useState(false)
   const [showTesting, setShowTesting] = useState(false)
   const [skillWarn, setSkillWarn] = useState(false)
+  const [showWaitlistSuccess, setShowWaitlistSuccess] = useState(false)
 
   useEffect(() => {
     setShowTesting(isTestingMode())
@@ -140,6 +141,7 @@ export default function SignupPage() {
     }
     setUserId(id)
 
+    const grantPortal = testingMode
     setLoading(true)
     const { error: updateError } = await updateProfile(id, {
       email,
@@ -152,6 +154,8 @@ export default function SignupPage() {
       supplemental_interests: supplemental.trim() || null,
       onboarding_complete: true,
       onboarding_step: 4,
+      portal_access: grantPortal,
+      waitlist_submitted_at: grantPortal ? null : new Date().toISOString(),
     })
 
     setLoading(false)
@@ -159,6 +163,18 @@ export default function SignupPage() {
       setError(updateError)
       return
     }
+
+    if (!grantPortal) {
+      await supabase.from('notifications').insert({
+        type: 'new_student_waitlist',
+        title: 'New student joined waitlist',
+        body: `${firstName.trim()} ${lastName.trim()} from ${resolvedUniversity} submitted their profile.`,
+        metadata: { student_id: id, email },
+      })
+      setShowWaitlistSuccess(true)
+      return
+    }
+
     router.push('/dashboard')
   }
 
@@ -173,7 +189,47 @@ export default function SignupPage() {
             <TestingBanner enabled={testingMode} onChange={setTestingMode} />
           ) : null}
 
-          {step === 1 ? (
+          {showWaitlistSuccess ? (
+            <div className="flex flex-col items-center py-8 text-center">
+              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-teal-wash">
+                <PartyPopper size={48} className="text-teal" />
+              </div>
+              <h2 className="mt-6 text-2xl font-bold text-navy">
+                You&apos;re on the list! 🎉
+              </h2>
+              <p className="mx-auto mt-3 max-w-sm text-base leading-relaxed text-slate">
+                Thanks for joining Sprintern, {firstName}. We&apos;re reviewing
+                your profile and will reach out as soon as your sprint matches
+                are ready.
+              </p>
+              <div className="mt-8 w-full max-w-sm rounded-2xl bg-canvas p-6 text-left">
+                <p className="mb-4 text-sm font-semibold text-navy">
+                  What happens next
+                </p>
+                <div className="flex flex-col gap-3">
+                  {[
+                    'We review your profile and skills',
+                    'We match you with relevant sprint projects',
+                    "You'll receive an email when your portal is ready",
+                  ].map((text, i) => (
+                    <div key={text} className="flex items-start gap-3">
+                      <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-teal text-xs font-bold text-white">
+                        {i + 1}
+                      </span>
+                      <span className="text-sm text-navy">{text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-6 text-center">
+                <p className="text-xs text-slate">We&apos;ll reach out to</p>
+                <p className="text-sm font-semibold text-navy">{email}</p>
+              </div>
+              <p className="mt-8 text-xs text-slate/50">
+                Questions? Email us at hello@sprintern.ai
+              </p>
+            </div>
+          ) : step === 1 ? (
             <>
               <p className="text-xs font-semibold uppercase tracking-wider text-slate/50">
                 Step 1 of 2

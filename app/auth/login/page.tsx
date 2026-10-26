@@ -91,11 +91,13 @@ function LoginForm() {
       } else {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('onboarding_complete, onboarding_step')
+          .select('onboarding_complete, onboarding_step, portal_access')
           .eq('id', data.user.id)
           .single()
 
-        if (!profile?.onboarding_complete) {
+        if (profile && profile.portal_access === false && !testingMode) {
+          router.push('/waitlist')
+        } else if (!profile?.onboarding_complete) {
           const step = profile?.onboarding_step ?? 0
           router.push(`/onboarding/step/${Math.max(1, step + 1)}`)
         } else {

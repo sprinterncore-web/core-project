@@ -21,6 +21,10 @@ type Props = {
   searchQuery: string
   statusFilter: string
   roleFilter: string
+  accessFilter?: string
+  selectedIds?: Set<string>
+  onToggleSelect?: (id: string) => void
+  onGrantAccess?: (student: Profile) => void
   onDelete?: (student: Profile) => void
   onRestore?: (studentId: string) => void
 }
@@ -30,12 +34,26 @@ export function StudentTable({
   searchQuery,
   statusFilter,
   roleFilter,
+  accessFilter = 'All',
+  selectedIds,
+  onToggleSelect,
+  onGrantAccess,
   onDelete,
   onRestore,
 }: Props) {
   const q = searchQuery.trim().toLowerCase()
   const filtered = students.filter((s) => {
-    if (statusFilter !== 'All' && s.profile_status !== statusFilter.toLowerCase()) {
+    const onWaitlist = s.portal_access === false
+    if (accessFilter === 'Waitlist') {
+      if (!onWaitlist) return false
+    } else if (onWaitlist) {
+      return false
+    }
+    if (
+      statusFilter !== 'All' &&
+      statusFilter !== 'Waitlist' &&
+      s.profile_status !== statusFilter.toLowerCase()
+    ) {
       return false
     }
     if (roleFilter !== 'All' && s.role_type !== roleFilter.toLowerCase()) {
@@ -61,6 +79,7 @@ export function StudentTable({
         <thead className="border-b border-line bg-canvas">
           <tr>
             {[
+              ...(onToggleSelect ? [''] : []),
               'Student',
               'University',
               'Role',
@@ -92,6 +111,15 @@ export function StudentTable({
                   isDeleted ? 'bg-red-50/30' : ''
                 }`}
               >
+                {onToggleSelect ? (
+                  <td className="px-5 py-4">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds?.has(s.id) ?? false}
+                      onChange={() => onToggleSelect(s.id)}
+                    />
+                  </td>
+                ) : null}
                 <td className="px-5 py-4">
                   <div className="flex items-center gap-3">
                     <div className="flex h-9 w-9 items-center justify-center rounded-full bg-navy text-xs font-bold text-white">
@@ -154,6 +182,15 @@ export function StudentTable({
                     <span className="mr-2 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-600">
                       Deleted
                     </span>
+                  ) : null}
+                  {onGrantAccess && s.portal_access === false ? (
+                    <button
+                      type="button"
+                      onClick={() => onGrantAccess(s)}
+                      className="mr-3 text-sm font-semibold text-teal"
+                    >
+                      Grant Access →
+                    </button>
                   ) : null}
                   <Link
                     href={`/admin/students/${s.id}`}

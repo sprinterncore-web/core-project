@@ -13,6 +13,7 @@ import {
   restoreStudent,
   softDeleteStudent,
 } from '@/lib/supabase/admin'
+import { updateProfile } from '@/lib/supabase/profile'
 import type { Profile } from '@/types/database'
 
 export default function AdminStudentsPage() {
@@ -27,7 +28,28 @@ export default function AdminStudentsPage() {
     studentName: string
   }>({ open: false, studentId: null, studentName: '' })
   const [deleteLoading, setDeleteLoading] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const { toast, showToast, hideToast } = useToast()
+
+  async function grantAccess(student: Profile) {
+    const { error } = await updateProfile(student.id, { portal_access: true })
+    if (error) {
+      showToast(error, 'error')
+      return
+    }
+    showToast(`Portal access granted to ${student.full_name ?? student.email}`, 'success')
+    refresh()
+  }
+
+  async function grantSelected() {
+    const ids = Array.from(selectedIds)
+    await Promise.all(
+      ids.map((id) => updateProfile(id, { portal_access: true }))
+    )
+    showToast(`Portal access granted to ${ids.length} student(s)`, 'success')
+    setSelectedIds(new Set())
+    refresh()
+  }
 
   const refresh = useCallback(() => {
     getAllStudents(showDeleted).then(setStudents)
@@ -88,7 +110,7 @@ export default function AdminStudentsPage() {
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
         >
-          {['All', 'Pending', 'Verified', 'Active'].map((o) => (
+          {['All', 'Waitlist', 'Pending', 'Verified', 'Active'].map((o) => (
             <option key={o} value={o}>
               {o === 'All' ? 'All Status' : o}
             </option>
@@ -113,6 +135,15 @@ export default function AdminStudentsPage() {
           />
           Show deleted accounts
         </label>
+        {selectedIds.size > 0 ? (
+          <button
+            type="button"
+            onClick={grantSelected}
+            className="ml-auto rounded-full bg-teal px-4 py-2 text-sm font-semibold text-white"
+          >
+            Grant Access to Selected ({selectedIds.size})
+          </button>
+        ) : null}
       </div>
 
       <StudentTable
@@ -120,6 +151,20 @@ export default function AdminStudentsPage() {
         searchQuery={search}
         statusFilter={statusFilter}
         roleFilter={roleFilter}
+        accessFilter={statusFilter}
+        selectedIds={statusFilter === 'Waitlist' ? selectedIds : undefined}
+        onToggleSelect={
+          statusFilter === 'Waitlist'
+            ? (id) =>
+                setSelectedIds((prev) => {
+                  const next = new Set(prev)
+                  if (next.has(id)) next.delete(id)
+                  else next.add(id)
+                  return next
+                })
+            : undefined
+        }
+        onGrantAccess={grantAccess}
         onDelete={(student) =>
           setDeleteModal({
             open: true,
