@@ -4,10 +4,16 @@ import { securityHeaderEntries } from './security-headers.mjs'
 const nextConfig = {
   async headers() {
     const hsts = process.env.VERCEL === '1'
+    const entries = securityHeaderEntries({ hsts })
     return [
       {
         source: '/:path*',
-        headers: securityHeaderEntries({ hsts }),
+        headers: entries,
+      },
+      {
+        // Vercel defaults static assets to ACAO:*; this must come after /:path*
+        source: '/_next/:path*',
+        headers: entries,
       },
     ]
   },

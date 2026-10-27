@@ -24,8 +24,12 @@
           "value": "camera=(), microphone=(), geolocation=()"
         },
         {
-          "key": "Content-Security-Policy-Report-Only",
+          "key": "Content-Security-Policy",
           "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com https://assets.calendly.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co https://sprintern.ai https://www.sprintern.ai; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://vitals.vercel-insights.com; frame-src https://calendly.com https://*.calendly.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "https://www.sprintern.ai"
         }
       ]
     }

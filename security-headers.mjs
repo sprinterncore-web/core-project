@@ -1,10 +1,12 @@
 /**
  * Shared security headers for Next.js (next.config) and Vercel (vercel.json).
- * CSP is Report-Only first — switch key to Content-Security-Policy after reports are clean.
- * When you change CSP_REPORT_ONLY, mirror the value in vercel.json (JSON cannot import this file).
+ * When you change CSP_POLICY, mirror the value in vercel.json (JSON cannot import this file).
  */
 
-export const CSP_REPORT_ONLY = [
+/** Primary site origin — overrides Vercel’s default ACAO:* on static assets. */
+export const CORS_ALLOW_ORIGIN = 'https://www.sprintern.ai'
+
+export const CSP_POLICY = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com https://assets.calendly.com",
   "style-src 'self' 'unsafe-inline'",
@@ -34,8 +36,12 @@ export function securityHeaderEntries(opts = {}) {
       value: 'camera=(), microphone=(), geolocation=()',
     },
     {
-      key: 'Content-Security-Policy-Report-Only',
-      value: CSP_REPORT_ONLY,
+      key: 'Content-Security-Policy',
+      value: CSP_POLICY,
+    },
+    {
+      key: 'Access-Control-Allow-Origin',
+      value: CORS_ALLOW_ORIGIN,
     },
   ]
   if (hsts) {
