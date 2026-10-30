@@ -6,6 +6,11 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2, XCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { verifyCurrentUserIsAdmin } from '@/lib/actions/verify-admin'
+import { isTestingMode } from '@/lib/testing'
+
+function isEduEmail(email: string): boolean {
+  return email.toLowerCase().endsWith('.edu')
+}
 
 function CallbackContent() {
   const router = useRouter()
@@ -65,28 +70,54 @@ function CallbackContent() {
         return
       }
 
-      const { data: profile } = await supabase
+      const email = user.email ?? ''
+      if (!isTestingMode() && email && !isEduEmail(email)) {
+        await supabase.auth.signOut()
+        router.replace('/auth/login?error=not_edu')
+        return
+      }
+
+      let { data: profile } = await supabase
         .from('profiles')
-        .select('onboarding_complete, onboarding_step, portal_access')
+        .select('id, onboarding_complete, onboarding_step, portal_access')
         .eq('id', user.id)
         .maybeSingle()
 
-      if (profile && profile.portal_access !== true) {
+      if (!profile) {
+        const fullName =
+          (user.user_metadata?.full_name as string | undefined) ??
+          (user.user_metadata?.name as string | undefined) ??
+          null
+
+        const { error: insertError } = await supabase.from('profiles').insert({
+          id: user.id,
+          email: user.email ?? '',
+          full_name: fullName,
+          portal_access: false,
+          waitlist_submitted_at: new Date().toISOString(),
+        })
+
+        if (insertError) {
+          setErrorMessage(insertError.message)
+          return
+        }
+
         router.replace('/dashboard/profile?waitlisted=true')
         return
       }
 
-      if (profile?.onboarding_complete) {
+      if (profile.portal_access !== true) {
+        router.replace('/dashboard/profile?waitlisted=true')
+        return
+      }
+
+      if (profile.onboarding_complete) {
         router.replace('/dashboard')
         return
       }
 
-      const step = profile?.onboarding_step ?? 0
-      if (step < 4) {
-        router.replace(`/onboarding/step/${Math.max(1, step + 1)}`)
-      } else {
-        router.replace('/dashboard')
-      }
+      const step = profile.onboarding_step ?? 0
+      router.replace(`/onboarding/step/${Math.max(1, step + 1)}`)
     }
 
     run()
@@ -111,9 +142,7 @@ function CallbackContent() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-canvas px-6 text-center">
       <Loader2 size={48} className="animate-spin text-teal" />
-      <p className="mt-4 text-lg font-semibold text-navy">
-        Verifying your email...
-      </p>
+      <p className="mt-4 text-lg font-semibold text-navy">Signing you in...</p>
     </div>
   )
 }

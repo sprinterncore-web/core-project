@@ -6,6 +6,10 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Check, Eye, EyeOff, FileText, Loader2, PartyPopper } from 'lucide-react'
 import { AuthLeftPanel } from '@/components/auth/AuthLeftPanel'
+import {
+  GoogleAuthButton,
+  GoogleAuthDivider,
+} from '@/components/auth/GoogleAuthButton'
 import { UniversitySelect } from '@/components/ui/UniversitySelect'
 import { createClient } from '@/lib/supabase/client'
 import { isDevTestingActive, isTestingMode } from '@/lib/testing'
@@ -310,6 +314,11 @@ export default function SignupPage() {
                   Continue →
                 </motion.button>
               </form>
+              <GoogleAuthDivider />
+              <GoogleAuthButton className="mt-0" />
+              <p className="mt-2 text-center text-xs text-slate/60">
+                Use your university Google account (.edu email)
+              </p>
             </>
           ) : (
             <>
