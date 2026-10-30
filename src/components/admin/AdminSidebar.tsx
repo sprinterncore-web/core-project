@@ -8,17 +8,13 @@ import {
   Building2,
   ClipboardList,
   Globe,
-  Inbox,
   LogOut,
   Sparkles,
   Users,
   Zap,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { getWaitlistCount } from '@/lib/supabase/waitlist'
-
 const manageLinks = [
-  { href: '/admin/waitlist', icon: Inbox, label: 'Waitlist', badge: true },
   { href: '/admin/students', icon: Users, label: 'Students' },
   { href: '/admin/companies', icon: Building2, label: 'Companies' },
   { href: '/admin/jobs', icon: Briefcase, label: 'Job Listings' },
@@ -35,8 +31,6 @@ export function AdminSidebar() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [initials, setInitials] = useState('SA')
-  const [waitlistCount, setWaitlistCount] = useState(0)
-
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -45,7 +39,6 @@ export function AdminSidebar() {
         setInitials(user.email.slice(0, 2).toUpperCase())
       }
     })
-    getWaitlistCount().then(setWaitlistCount)
   }, [])
 
   async function logout() {
@@ -54,12 +47,7 @@ export function AdminSidebar() {
     router.push('/admin/login')
   }
 
-  function navItem(
-    href: string,
-    icon: typeof Users,
-    label: string,
-    showBadge?: boolean
-  ) {
+  function navItem(href: string, icon: typeof Users, label: string) {
     const active =
       pathname === href || (href !== '/admin' && pathname.startsWith(href))
     const Icon = icon
@@ -78,11 +66,6 @@ export function AdminSidebar() {
         ) : null}
         <Icon size={18} />
         {label}
-        {showBadge && waitlistCount > 0 ? (
-          <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-teal px-1.5 text-[10px] font-bold text-navy">
-            {waitlistCount > 99 ? '99+' : waitlistCount}
-          </span>
-        ) : null}
       </Link>
     )
   }
@@ -106,9 +89,7 @@ export function AdminSidebar() {
         <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-widest text-white/30">
           MANAGE
         </p>
-        {manageLinks.map((l) =>
-          navItem(l.href, l.icon, l.label, 'badge' in l ? l.badge : false)
-        )}
+        {manageLinks.map((l) => navItem(l.href, l.icon, l.label))}
 
         <div className="mb-4 mt-6 border-t border-white/10" />
         <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-widest text-white/30">

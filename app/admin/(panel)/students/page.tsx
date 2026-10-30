@@ -1,7 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { CheckCircle2, Clock, Users, Zap } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
+import { Clock, Users, UserCheck, Zap } from 'lucide-react'
 import { AdminShell } from '@/components/admin/AdminShell'
 import { StudentTable } from '@/components/admin/students/StudentTable'
 import { DeleteConfirmModal } from '@/components/ui/DeleteConfirmModal'
@@ -16,10 +17,19 @@ import {
 import { updateProfile } from '@/lib/supabase/profile'
 import type { Profile } from '@/types/database'
 
+const STATUS_OPTIONS = [
+  { label: 'All Status', value: 'all' },
+  { label: 'Waitlisted', value: 'waitlisted' },
+  { label: 'Active', value: 'active' },
+  { label: 'Pending Review', value: 'pending' },
+  { label: 'Onboarding Complete', value: 'complete' },
+] as const
+
 export default function AdminStudentsPage() {
+  const searchParams = useSearchParams()
   const [students, setStudents] = useState<Profile[]>([])
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('All')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
   const [roleFilter, setRoleFilter] = useState('All')
   const [showDeleted, setShowDeleted] = useState(false)
   const [deleteModal, setDeleteModal] = useState<{
@@ -31,13 +41,21 @@ export default function AdminStudentsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const { toast, showToast, hideToast } = useToast()
 
+  useEffect(() => {
+    const s = searchParams.get('status')
+    if (s === 'waitlisted') setStatusFilter('waitlisted')
+  }, [searchParams])
+
   async function grantAccess(student: Profile) {
     const { error } = await updateProfile(student.id, { portal_access: true })
     if (error) {
       showToast(error, 'error')
       return
     }
-    showToast(`Portal access granted to ${student.full_name ?? student.email}`, 'success')
+    showToast(
+      `Portal access granted to ${student.full_name ?? student.email}`,
+      'success'
+    )
     refresh()
   }
 
@@ -63,8 +81,8 @@ export default function AdminStudentsPage() {
     const active = students.filter((s) => !s.deleted)
     return {
       total: active.length,
-      complete: active.filter((s) => s.onboarding_complete).length,
-      pending: active.filter((s) => s.profile_status === 'pending').length,
+      waitlisted: active.filter((s) => s.portal_access !== true).length,
+      activePortal: active.filter((s) => s.portal_access === true).length,
       activeSprint: active.filter((s) => s.profile_status === 'active').length,
     }
   }, [students])
@@ -79,16 +97,16 @@ export default function AdminStudentsPage() {
           iconColor="text-blue"
         />
         <StatCard
-          label="Onboarding Complete"
-          value={stats.complete}
-          icon={CheckCircle2}
-          iconColor="text-teal"
-        />
-        <StatCard
-          label="Pending Review"
-          value={stats.pending}
+          label="Waitlisted"
+          value={stats.waitlisted}
           icon={Clock}
           iconColor="text-amber-500"
+        />
+        <StatCard
+          label="Active"
+          value={stats.activePortal}
+          icon={UserCheck}
+          iconColor="text-teal"
         />
         <StatCard
           label="Active Sprints"
@@ -110,9 +128,9 @@ export default function AdminStudentsPage() {
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
         >
-          {['All', 'Waitlist', 'Pending', 'Verified', 'Active'].map((o) => (
-            <option key={o} value={o}>
-              {o === 'All' ? 'All Status' : o}
+          {STATUS_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
             </option>
           ))}
         </select>
@@ -151,10 +169,9 @@ export default function AdminStudentsPage() {
         searchQuery={search}
         statusFilter={statusFilter}
         roleFilter={roleFilter}
-        accessFilter={statusFilter}
-        selectedIds={statusFilter === 'Waitlist' ? selectedIds : undefined}
+        selectedIds={statusFilter === 'waitlisted' ? selectedIds : undefined}
         onToggleSelect={
-          statusFilter === 'Waitlist'
+          statusFilter === 'waitlisted'
             ? (id) =>
                 setSelectedIds((prev) => {
                   const next = new Set(prev)

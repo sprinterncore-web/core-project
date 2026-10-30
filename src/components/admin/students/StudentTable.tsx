@@ -5,7 +5,7 @@ import { Users } from 'lucide-react'
 import type { Profile, ProfileStatus } from '@/types/database'
 import { formatDate, initials } from '@/lib/format'
 
-function statusClass(status: ProfileStatus | undefined) {
+function profileStatusClass(status: ProfileStatus | undefined) {
   switch (status) {
     case 'verified':
       return 'border-teal/20 bg-teal-wash text-teal'
@@ -21,7 +21,6 @@ type Props = {
   searchQuery: string
   statusFilter: string
   roleFilter: string
-  accessFilter?: string
   selectedIds?: Set<string>
   onToggleSelect?: (id: string) => void
   onGrantAccess?: (student: Profile) => void
@@ -34,7 +33,6 @@ export function StudentTable({
   searchQuery,
   statusFilter,
   roleFilter,
-  accessFilter = 'All',
   selectedIds,
   onToggleSelect,
   onGrantAccess,
@@ -43,19 +41,16 @@ export function StudentTable({
 }: Props) {
   const q = searchQuery.trim().toLowerCase()
   const filtered = students.filter((s) => {
-    const onWaitlist = s.portal_access === false
-    if (accessFilter === 'Waitlist') {
-      if (!onWaitlist) return false
-    } else if (onWaitlist) {
-      return false
+    if (statusFilter === 'waitlisted') {
+      if (s.portal_access === true) return false
+    } else if (statusFilter === 'active') {
+      if (s.portal_access !== true) return false
+    } else if (statusFilter === 'pending') {
+      if (s.profile_status !== 'pending') return false
+    } else if (statusFilter === 'complete') {
+      if (!s.onboarding_complete) return false
     }
-    if (
-      statusFilter !== 'All' &&
-      statusFilter !== 'Waitlist' &&
-      s.profile_status !== statusFilter.toLowerCase()
-    ) {
-      return false
-    }
+
     if (roleFilter !== 'All' && s.role_type !== roleFilter.toLowerCase()) {
       return false
     }
@@ -68,7 +63,7 @@ export function StudentTable({
     return (
       <div className="rounded-2xl border border-line bg-white py-16 text-center">
         <Users size={40} className="mx-auto text-slate/30" />
-        <p className="mt-3 text-slate">No students yet</p>
+        <p className="mt-3 text-slate">No students match this filter</p>
       </div>
     )
   }
@@ -84,7 +79,8 @@ export function StudentTable({
               'University',
               'Role',
               'Skills',
-              'Status',
+              'Portal',
+              'Review',
               'Onboarding',
               'Joined',
               'Actions',
@@ -104,6 +100,7 @@ export function StudentTable({
             const pct = Math.min(100, (step / 4) * 100)
             const skills = s.skills ?? []
             const isDeleted = s.deleted === true
+            const hasPortalAccess = s.portal_access === true
             return (
               <tr
                 key={s.id}
@@ -159,8 +156,19 @@ export function StudentTable({
                   </div>
                 </td>
                 <td className="px-5 py-4">
+                  {hasPortalAccess ? (
+                    <span className="rounded-full border border-teal/20 bg-teal-wash px-2.5 py-1 text-xs font-semibold text-teal">
+                      Active
+                    </span>
+                  ) : (
+                    <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">
+                      Waitlisted
+                    </span>
+                  )}
+                </td>
+                <td className="px-5 py-4">
                   <span
-                    className={`rounded-full border px-2.5 py-1 text-xs font-semibold capitalize ${statusClass(s.profile_status)}`}
+                    className={`rounded-full border px-2.5 py-1 text-xs font-semibold capitalize ${profileStatusClass(s.profile_status)}`}
                   >
                     {s.profile_status ?? 'pending'}
                   </span>
@@ -183,14 +191,18 @@ export function StudentTable({
                       Deleted
                     </span>
                   ) : null}
-                  {onGrantAccess && s.portal_access === false ? (
+                  {!hasPortalAccess && onGrantAccess ? (
                     <button
                       type="button"
                       onClick={() => onGrantAccess(s)}
-                      className="mr-3 text-sm font-semibold text-teal"
+                      className="mr-3 text-sm font-semibold text-blue hover:underline"
                     >
-                      Grant Access →
+                      Grant Access
                     </button>
+                  ) : hasPortalAccess ? (
+                    <span className="mr-3 text-sm font-semibold text-teal">
+                      ✓ Active
+                    </span>
                   ) : null}
                   <Link
                     href={`/admin/students/${s.id}`}
