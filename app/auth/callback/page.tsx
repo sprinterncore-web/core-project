@@ -74,7 +74,7 @@ function CallbackContent() {
 
       const testing = isTestingMode()
       if (profile && profile.portal_access === false && !testing) {
-        router.replace('/waitlist')
+        router.replace('/dashboard/profile?waitlisted=true')
         return
       }
 

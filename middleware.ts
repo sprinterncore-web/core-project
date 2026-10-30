@@ -1,7 +1,30 @@
 import { createServerClient } from '@supabase/ssr'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { NextResponse, type NextRequest } from 'next/server'
 import { isAdminUserId } from '@/lib/supabase/service'
+import { WAITLIST_PROFILE_URL } from '@/lib/portal-access'
 import { isLocalDevHostname } from '@/lib/testing'
+
+async function studentPortalAccessBlocked(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<boolean> {
+  const { data: companyUser } = await supabase
+    .from('company_users')
+    .select('id')
+    .eq('id', userId)
+    .maybeSingle()
+
+  if (companyUser) return false
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('portal_access')
+    .eq('id', userId)
+    .maybeSingle()
+
+  return profile != null && profile.portal_access === false
+}
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -54,19 +77,19 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/auth/login', request.url))
   }
 
-  if (
-    user &&
-    !skipWaitlistGate &&
-    (pathname.startsWith('/dashboard') || pathname.startsWith('/onboarding'))
-  ) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('portal_access')
-      .eq('id', user.id)
-      .maybeSingle()
+  if (user && !skipWaitlistGate) {
+    const blocked = await studentPortalAccessBlocked(supabase, user.id)
 
-    if (profile && profile.portal_access === false) {
-      return NextResponse.redirect(new URL('/waitlist', request.url))
+    if (
+      blocked &&
+      pathname.startsWith('/dashboard') &&
+      !pathname.startsWith('/dashboard/profile')
+    ) {
+      return NextResponse.redirect(new URL(WAITLIST_PROFILE_URL, request.url))
+    }
+
+    if (blocked && pathname.startsWith('/onboarding')) {
+      return NextResponse.redirect(new URL(WAITLIST_PROFILE_URL, request.url))
     }
   }
 
@@ -121,7 +144,7 @@ export async function middleware(request: NextRequest) {
       profile.portal_access === false &&
       !skipWaitlistGate
     ) {
-      url.pathname = '/waitlist'
+      return NextResponse.redirect(new URL(WAITLIST_PROFILE_URL, request.url))
     } else if (!profile?.onboarding_complete) {
       const step = profile?.onboarding_step ?? 0
       url.pathname = `/onboarding/step/${Math.max(1, step + 1)}`

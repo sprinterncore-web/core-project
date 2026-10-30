@@ -11,6 +11,7 @@ import { ApplyModal } from '@/components/student/ApplyModal'
 import { InterviewCard } from '@/components/student/InterviewCard'
 import { JobDetailModal } from '@/components/student/JobDetailModal'
 import { createClient } from '@/lib/supabase/client'
+import { WAITLIST_PROFILE_URL } from '@/lib/portal-access'
 import { isTestingMode } from '@/lib/testing'
 import {
   getScheduledInterviews,
@@ -68,7 +69,7 @@ export default function DashboardPage() {
       setProfile(prof)
 
       if (prof && prof.portal_access === false && !isTestingMode()) {
-        router.replace('/waitlist')
+        router.replace(WAITLIST_PROFILE_URL)
         return
       }
 

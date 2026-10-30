@@ -30,8 +30,7 @@ export default function WaitlistPage() {
         router.replace('/dashboard')
         return
       }
-      setProfile(p)
-      setLoading(false)
+      router.replace('/dashboard/profile?waitlisted=true')
     }
     load()
   }, [router])

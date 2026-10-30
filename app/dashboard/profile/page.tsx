@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
   CheckCircle2,
@@ -27,6 +27,8 @@ import type { MatchResult, Profile } from '@/types/database'
 
 export default function ProfilePage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const isNewWaitlistSignup = searchParams.get('waitlisted') === 'true'
   const [loading, setLoading] = useState(true)
   const [userEmail, setUserEmail] = useState('')
   const [userId, setUserId] = useState<string | null>(null)
@@ -168,6 +170,24 @@ export default function ProfilePage() {
       />
 
       <main className="mx-auto max-w-[1280px] px-6 py-10 pb-28">
+        {isNewWaitlistSignup ? (
+          <div className="mb-6 flex items-start gap-3 rounded-2xl border border-blue/20 bg-gradient-to-r from-teal-wash to-blue/5 p-5">
+            <span className="text-2xl" aria-hidden>
+              🎉
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-navy">
+                You&apos;re in — complete your profile!
+              </p>
+              <p className="mt-0.5 text-sm text-slate">
+                Fill out your profile now so you&apos;re ready when your cohort
+                opens. We&apos;ll email you at{' '}
+                <span className="font-medium text-blue">{userEmail}</span> when
+                it&apos;s your turn.
+              </p>
+            </div>
+          </div>
+        ) : null}
         <div className="mb-10 flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-navy">Your Sprint Profile</h1>

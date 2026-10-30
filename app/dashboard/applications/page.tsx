@@ -6,6 +6,8 @@ import { CalendarPlus, Loader2 } from 'lucide-react'
 import { DashboardNav } from '@/components/dashboard/DashboardNav'
 import { ApplicationStatusBadge } from '@/components/student/ApplicationStatusBadge'
 import { createClient } from '@/lib/supabase/client'
+import { WAITLIST_PROFILE_URL } from '@/lib/portal-access'
+import { isTestingMode } from '@/lib/testing'
 import {
   formatDate,
   formatInterviewDateTime,
@@ -46,7 +48,12 @@ export default function StudentApplicationsPage() {
         return
       }
       setEmail(user.email ?? '')
-      setProfile(await getProfile(user.id))
+      const prof = await getProfile(user.id)
+      if (prof && prof.portal_access === false && !isTestingMode()) {
+        router.replace(WAITLIST_PROFILE_URL)
+        return
+      }
+      setProfile(prof)
       setApplications(await getStudentApplications(user.id))
       setLoading(false)
     }
