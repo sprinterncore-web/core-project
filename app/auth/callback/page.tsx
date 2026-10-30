@@ -73,7 +73,7 @@ function CallbackContent() {
         .maybeSingle()
 
       const testing = isTestingMode()
-      if (profile && profile.portal_access === false && !testing) {
+      if (profile && profile.portal_access !== true && !testing) {
         router.replace('/dashboard/profile?waitlisted=true')
         return
       }

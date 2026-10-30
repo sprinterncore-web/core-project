@@ -17,3 +17,9 @@ export const TESTING_MODE_AVAILABLE = true
 export function isLocalDevHostname(hostname: string): boolean {
   return hostname === 'localhost' || hostname === '127.0.0.1'
 }
+
+/** Client: portal gate bypass only on localhost (not Vercel previews). */
+export function isLocalDevClient(): boolean {
+  if (typeof window === 'undefined') return false
+  return isLocalDevHostname(window.location.hostname)
+}

@@ -95,7 +95,11 @@ function LoginForm() {
           .eq('id', data.user.id)
           .single()
 
-        if (profile && profile.portal_access === false && !testingMode) {
+        if (
+          profile &&
+          profile.portal_access !== true &&
+          !testingMode
+        ) {
           router.push('/dashboard/profile?waitlisted=true')
         } else if (!profile?.onboarding_complete) {
           const step = profile?.onboarding_step ?? 0

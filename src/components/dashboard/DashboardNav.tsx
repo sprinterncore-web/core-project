@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { countPendingApplications } from '@/lib/supabase/applications'
+import { isStudentWaitlisted } from '@/lib/portal-access'
 import { getProfile } from '@/lib/supabase/profile'
 import {
   calculateProfileCompletion,
@@ -78,7 +79,7 @@ export function DashboardNav({ userEmail, userName }: DashboardNavProps) {
       const p = await getProfile(user.id)
       if (p) {
         setCompletionPct(calculateProfileCompletion(normalizeProfile(p)))
-        const access = companyUser ? true : (p.portal_access ?? true)
+        const access = companyUser ? true : !isStudentWaitlisted(p)
         setPortalAccess(access)
         if (access !== false) {
           countPendingApplications(user.id).then(setPendingCount)

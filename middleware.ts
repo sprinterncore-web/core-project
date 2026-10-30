@@ -1,20 +1,23 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { isStudentWaitlisted } from '@/lib/portal-access'
 
 export async function middleware(req: NextRequest) {
-  const res = NextResponse.next()
   const { pathname } = req.nextUrl
 
-  // Skip middleware for static files and API routes
+  console.log('[MIDDLEWARE] hit:', pathname)
+
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
     pathname.includes('.')
   ) {
-    return res
+    return NextResponse.next()
   }
+
+  let response = NextResponse.next({
+    request: { headers: req.headers },
+  })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,82 +28,93 @@ export async function middleware(req: NextRequest) {
           return req.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            req.cookies.set(name, value)
-            res.cookies.set(name, value, options)
-          })
+          cookiesToSet.forEach(({ name, value }) => req.cookies.set(name, value))
+          response = NextResponse.next({ request: { headers: req.headers } })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          )
         },
       },
     }
   )
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    data: { user },
+  } = await supabase.auth.getUser()
 
-  // --- Not logged in: protect all dashboard/admin routes ---
-  if (!session) {
+  console.log('[MIDDLEWARE] user:', user?.id ?? 'none', 'path:', pathname)
+
+  if (!user) {
     if (pathname === '/admin/login' || pathname === '/admin/signup') {
-      return res
+      return response
     }
     if (pathname.startsWith('/dashboard') || pathname.startsWith('/admin')) {
+      console.log('[MIDDLEWARE] no user, redirecting to login')
       return NextResponse.redirect(new URL('/auth/login', req.url))
     }
-    return res
+    return response
   }
 
-  // --- Logged in: check portal_access for student dashboard routes ---
-  // Only gate /dashboard routes that are NOT /dashboard/profile
-  const isProtectedDashboard =
-    pathname.startsWith('/dashboard') &&
-    !pathname.startsWith('/dashboard/profile')
+  const isDashboardRoute = pathname.startsWith('/dashboard')
+  const isProfileRoute = pathname.startsWith('/dashboard/profile')
 
-  if (isProtectedDashboard) {
-    // Check if this is a company user (bypass gate)
+  if (isDashboardRoute && !isProfileRoute) {
+    console.log('[MIDDLEWARE] checking portal access for:', user.id)
+
     const { data: companyUser } = await supabase
       .from('company_users')
       .select('id')
-      .eq('id', session.user.id)
+      .eq('id', user.id)
       .maybeSingle()
 
     if (companyUser) {
-      // Company user — full access
-      return res
+      console.log('[MIDDLEWARE] company user, allowing through')
+      return response
     }
 
     const { data: adminRow } = await supabase
       .from('admins')
       .select('id')
-      .eq('id', session.user.id)
+      .eq('id', user.id)
       .maybeSingle()
 
     if (adminRow) {
-      return res
+      console.log('[MIDDLEWARE] admin user, allowing through')
+      return response
     }
 
-    const { data: profile } = await supabase
+    const { data: profile, error } = await supabase
       .from('profiles')
       .select('portal_access')
-      .eq('id', session.user.id)
+      .eq('id', user.id)
       .maybeSingle()
 
-    // Student without explicit portal_access — redirect to profile
-    if (isStudentWaitlisted(profile)) {
+    console.log(
+      '[MIDDLEWARE] profile:',
+      JSON.stringify(profile),
+      'error:',
+      error?.message
+    )
+
+    if (profile?.portal_access !== true) {
       console.log(
-        '[Middleware] Blocking student - portal_access:',
+        '[MIDDLEWARE] BLOCKING - portal_access is:',
         profile?.portal_access,
-        'user:',
-        session.user.id
+        '- redirecting to profile'
       )
-      const url = new URL('/dashboard/profile', req.url)
-      url.searchParams.set('waitlisted', 'true')
-      return NextResponse.redirect(url)
+      const redirectUrl = new URL('/dashboard/profile', req.url)
+      redirectUrl.searchParams.set('waitlisted', 'true')
+      return NextResponse.redirect(redirectUrl)
     }
+
+    console.log('[MIDDLEWARE] portal_access is true, allowing through')
   }
 
-  return res
+  return response
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/admin/:path*', '/auth/:path*'],
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 }
