@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import type { CookieOptions } from '@supabase/ssr'
 import type { User } from '@supabase/supabase-js'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { isAdminUserId } from '@/lib/supabase/service'
@@ -24,7 +25,7 @@ async function resolveStudentRedirect(
     return '/auth/login?error=not_edu'
   }
 
-  let { data: profile } = await supabase
+  const { data: profile } = await supabase
     .from('profiles')
     .select('id, onboarding_complete, onboarding_step, portal_access')
     .eq('id', user.id)
@@ -45,7 +46,7 @@ async function resolveStudentRedirect(
     })
 
     if (insertError) {
-      return `/auth/login?error=auth_callback_failed`
+      return '/auth/login?error=auth_callback_failed'
     }
 
     return '/dashboard/profile?waitlisted=true'
@@ -73,10 +74,16 @@ export async function GET(request: Request) {
   }
 
   if (!code) {
-    return NextResponse.redirect(`${origin}/auth/login`)
+    return NextResponse.redirect(`${origin}/auth/login?error=auth_callback_failed`)
   }
 
   const cookieStore = await cookies()
+  const pendingCookies: {
+    name: string
+    value: string
+    options: CookieOptions
+  }[] = []
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -86,13 +93,7 @@ export async function GET(request: Request) {
           return cookieStore.getAll()
         },
         setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
-          } catch {
-            // Route Handler cookie writes can fail in some Server Component contexts.
-          }
+          pendingCookies.push(...cookiesToSet)
         },
       },
     }
@@ -100,26 +101,32 @@ export async function GET(request: Request) {
 
   const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
-  if (error || !data.user) {
-    return NextResponse.redirect(`${origin}/auth/login?error=oauth`)
+  let redirectPath = '/auth/login?error=auth_callback_failed'
+
+  if (!error && data.user) {
+    const user = data.user
+
+    if (await isAdminUserId(user.id)) {
+      redirectPath = '/admin/students'
+    } else {
+      const { data: companyUser } = await supabase
+        .from('company_users')
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle()
+
+      if (companyUser) {
+        redirectPath = '/company/dashboard'
+      } else {
+        redirectPath = await resolveStudentRedirect(supabase, user, hostname)
+      }
+    }
   }
 
-  const user = data.user
+  const response = NextResponse.redirect(`${origin}${redirectPath}`)
+  pendingCookies.forEach(({ name, value, options }) => {
+    response.cookies.set(name, value, options)
+  })
 
-  if (await isAdminUserId(user.id)) {
-    return NextResponse.redirect(`${origin}/admin/students`)
-  }
-
-  const { data: companyUser } = await supabase
-    .from('company_users')
-    .select('id')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  if (companyUser) {
-    return NextResponse.redirect(`${origin}/company/dashboard`)
-  }
-
-  const path = await resolveStudentRedirect(supabase, user, hostname)
-  return NextResponse.redirect(`${origin}${path}`)
+  return response
 }
