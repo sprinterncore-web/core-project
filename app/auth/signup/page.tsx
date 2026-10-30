@@ -8,7 +8,7 @@ import { Check, Eye, EyeOff, FileText, Loader2, PartyPopper } from 'lucide-react
 import { AuthLeftPanel } from '@/components/auth/AuthLeftPanel'
 import { UniversitySelect } from '@/components/ui/UniversitySelect'
 import { createClient } from '@/lib/supabase/client'
-import { isTestingMode } from '@/lib/testing'
+import { isDevTestingActive, isTestingMode } from '@/lib/testing'
 import { TestingBanner } from '@/components/ui/TestingBanner'
 import { SKILL_CATEGORIES } from '@/data/skills'
 import { getClientSiteUrl } from '@/lib/site-url'
@@ -58,7 +58,7 @@ export default function SignupPage() {
     setLoading(true)
     setError(null)
 
-    if (!testingMode && !email.toLowerCase().endsWith('.edu')) {
+    if (!isDevTestingActive(testingMode) && !email.toLowerCase().endsWith('.edu')) {
       setError('A university .edu email address is required to sign up.')
       setLoading(false)
       return
@@ -76,7 +76,7 @@ export default function SignupPage() {
 
     if (
       signUpError?.message?.toLowerCase().includes('already registered') &&
-      testingMode
+      isDevTestingActive(testingMode)
     ) {
       const timestamp = Date.now().toString().slice(-4)
       signupEmail = email.replace('@', `+test${timestamp}@`)
@@ -141,7 +141,7 @@ export default function SignupPage() {
     }
     setUserId(id)
 
-    const grantPortal = testingMode
+    const grantPortal = isDevTestingActive(testingMode)
     setLoading(true)
     const { error: updateError } = await updateProfile(id, {
       email,
@@ -185,7 +185,7 @@ export default function SignupPage() {
       <AuthLeftPanel />
       <div className="lg:ml-[50%]">
         <div className="mx-auto max-w-md px-6 py-16">
-          {showTesting ? (
+          {process.env.NODE_ENV === 'development' && showTesting ? (
             <TestingBanner enabled={testingMode} onChange={setTestingMode} />
           ) : null}
 
@@ -258,7 +258,7 @@ export default function SignupPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   className={inputClass}
                 />
-                {!testingMode ? (
+                {!isDevTestingActive(testingMode) ? (
                   <p className="-mt-2 text-xs text-slate/60">
                     University .edu email required
                   </p>

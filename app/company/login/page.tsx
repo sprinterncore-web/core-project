@@ -7,7 +7,7 @@ import { motion } from 'framer-motion'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { CompanyAuthLeftPanel } from '@/components/company/CompanyAuthLeftPanel'
 import { createClient } from '@/lib/supabase/client'
-import { isTestingMode } from '@/lib/testing'
+import { isDevTestingActive, isTestingMode } from '@/lib/testing'
 import { TestingBanner } from '@/components/ui/TestingBanner'
 import { getClientSiteUrl } from '@/lib/site-url'
 
@@ -74,14 +74,14 @@ export default function CompanyLoginPage() {
       return
     }
 
-    if (!testingMode && !data.user?.email_confirmed_at) {
+    if (!isDevTestingActive(testingMode) && !data.user?.email_confirmed_at) {
       await supabase.auth.signOut()
       setError('Please confirm your email before logging in.')
       setLoading(false)
       return
     }
 
-    if (!testingMode) {
+    if (!isDevTestingActive(testingMode)) {
       const { data: companyUser } = await supabase
         .from('company_users')
         .select('id, company_id')
@@ -105,7 +105,7 @@ export default function CompanyLoginPage() {
       <CompanyAuthLeftPanel />
       <div className="lg:ml-[50%]">
         <div className="mx-auto max-w-sm px-6 py-16">
-          {showTesting ? (
+          {process.env.NODE_ENV === 'development' && showTesting ? (
             <TestingBanner enabled={testingMode} onChange={setTestingMode} />
           ) : null}
           <h1 className="text-2xl font-bold text-navy">Welcome back</h1>
@@ -116,13 +116,13 @@ export default function CompanyLoginPage() {
             </Link>
           </p>
 
-          {testingMode ? (
+          {isDevTestingActive(testingMode) ? (
             <p className="mt-2 text-center text-xs text-amber-600">
               Testing: email confirmation skipped
             </p>
           ) : null}
 
-          {showTesting ? (
+          {process.env.NODE_ENV === 'development' && showTesting ? (
             <Link
               href="/company/signup/portal"
               className="mt-4 block text-center text-xs font-semibold text-blue hover:underline"

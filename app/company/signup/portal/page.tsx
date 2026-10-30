@@ -21,7 +21,7 @@ import {
 import { CompanyAuthLeftPanel } from '@/components/company/CompanyAuthLeftPanel'
 import { Toggle } from '@/components/ui/Toggle'
 import { createClient } from '@/lib/supabase/client'
-import { isTestingMode } from '@/lib/testing'
+import { isDevTestingActive, isTestingMode } from '@/lib/testing'
 import { TestingBanner } from '@/components/ui/TestingBanner'
 import { SKILL_CATEGORIES } from '@/data/skills'
 import { getClientSiteUrl } from '@/lib/site-url'
@@ -119,7 +119,7 @@ export default function CompanySignupPage() {
     setLoading(true)
     setError(null)
 
-    if (!testingMode) {
+    if (!isDevTestingActive(testingMode)) {
       const emailDomain = email.split('@')[1]?.toLowerCase()
       if (personalDomains.includes(emailDomain ?? '')) {
         setError('Please use your company work email.')
@@ -141,7 +141,7 @@ export default function CompanySignupPage() {
 
     if (
       signUpError?.message?.toLowerCase().includes('already registered') &&
-      testingMode
+      isDevTestingActive(testingMode)
     ) {
       const timestamp = Date.now().toString().slice(-4)
       signupEmail = email.replace('@', `+test${timestamp}@`)
@@ -319,7 +319,7 @@ export default function CompanySignupPage() {
       <CompanyAuthLeftPanel />
       <div className="lg:ml-[50%]">
         <div className="mx-auto max-w-md px-6 py-16">
-          {showTesting ? (
+          {process.env.NODE_ENV === 'development' && showTesting ? (
             <TestingBanner enabled={testingMode} onChange={setTestingMode} />
           ) : null}
 

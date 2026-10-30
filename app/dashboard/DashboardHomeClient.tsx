@@ -12,7 +12,7 @@ import { InterviewCard } from '@/components/student/InterviewCard'
 import { JobDetailModal } from '@/components/student/JobDetailModal'
 import { createClient } from '@/lib/supabase/client'
 import { isStudentWaitlisted, WAITLIST_PROFILE_URL } from '@/lib/portal-access'
-import { isLocalDevClient, isTestingMode } from '@/lib/testing'
+import { isLocalDevClient } from '@/lib/testing'
 import {
   getScheduledInterviews,
   getStudentApplications,
@@ -58,7 +58,7 @@ export default function DashboardHomeClient() {
         return
       }
 
-      if (!isTestingMode() && !authUser.email_confirmed_at) {
+      if (!authUser.email_confirmed_at) {
         await supabase.auth.signOut()
         router.replace('/auth/login?error=email_not_confirmed')
         return

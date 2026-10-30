@@ -8,7 +8,7 @@ import { Eye, EyeOff, Loader2, MailWarning } from 'lucide-react'
 import { AuthLeftPanel } from '@/components/auth/AuthLeftPanel'
 import { createClient } from '@/lib/supabase/client'
 import { verifyCurrentUserIsAdmin } from '@/lib/actions/verify-admin'
-import { isTestingMode } from '@/lib/testing'
+import { isDevTestingActive, isTestingMode } from '@/lib/testing'
 import { TestingBanner } from '@/components/ui/TestingBanner'
 import { getClientSiteUrl } from '@/lib/site-url'
 
@@ -76,7 +76,7 @@ function LoginForm() {
     }
 
     if (data.user) {
-      if (!testingMode && !data.user.email_confirmed_at) {
+      if (!isDevTestingActive(testingMode) && !data.user.email_confirmed_at) {
         await supabase.auth.signOut()
         setError(
           'Please confirm your email before logging in. Check your inbox for the verification link.'
@@ -98,7 +98,7 @@ function LoginForm() {
         if (
           profile &&
           profile.portal_access !== true &&
-          !testingMode
+          !isDevTestingActive(testingMode)
         ) {
           router.push('/dashboard/profile?waitlisted=true')
         } else if (!profile?.onboarding_complete) {
@@ -125,7 +125,7 @@ function LoginForm() {
 
   return (
     <>
-      {showTesting ? (
+      {process.env.NODE_ENV === 'development' && showTesting ? (
         <TestingBanner enabled={testingMode} onChange={setTestingMode} />
       ) : null}
       <h1 className="text-2xl font-bold text-navy">Welcome back</h1>
@@ -139,7 +139,7 @@ function LoginForm() {
         </Link>
       </p>
 
-      {testingMode ? (
+      {isDevTestingActive(testingMode) ? (
         <p className="mt-2 text-center text-xs text-amber-600">
           Testing: email confirmation skipped
         </p>

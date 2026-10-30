@@ -9,7 +9,7 @@ type Props = {
 }
 
 export function TestingBanner({ enabled, onChange }: Props) {
-  if (!isTestingMode()) return null
+  if (process.env.NODE_ENV !== 'development' || !isTestingMode()) return null
 
   return (
     <div className="mb-6 rounded-2xl border-2 border-dashed border-amber-300 bg-amber-50 px-5 py-4">

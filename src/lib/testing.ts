@@ -1,17 +1,18 @@
-// Testing mode — bypass email validations on localhost / Vercel previews.
-// REMOVE before public launch.
+// Testing mode — localhost dev only (never Vercel previews or production).
 
 export function isTestingMode(): boolean {
+  if (process.env.NODE_ENV !== 'development') return false
   if (typeof window === 'undefined') return false
-  const hostname = window.location.hostname
-  return (
-    hostname === 'localhost' ||
-    hostname === '127.0.0.1' ||
-    hostname.endsWith('.vercel.app')
-  )
+  return isLocalDevHostname(window.location.hostname)
 }
 
-export const TESTING_MODE_AVAILABLE = true
+/** True when the dev-only toggle is on and the host allows testing mode. */
+export function isDevTestingActive(toggleEnabled: boolean): boolean {
+  return toggleEnabled && isTestingMode()
+}
+
+export const TESTING_MODE_AVAILABLE =
+  process.env.NODE_ENV === 'development'
 
 /** Server/middleware: skip waitlist portal gate on local dev. */
 export function isLocalDevHostname(hostname: string): boolean {
