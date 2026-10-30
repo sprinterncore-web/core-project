@@ -1,33 +1,20 @@
 import { createServerClient } from '@supabase/ssr'
-import type { SupabaseClient } from '@supabase/supabase-js'
-import { NextResponse, type NextRequest } from 'next/server'
-import { isAdminUserId } from '@/lib/supabase/service'
-import { WAITLIST_PROFILE_URL } from '@/lib/portal-access'
-import { isLocalDevHostname } from '@/lib/testing'
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+import { isStudentWaitlisted } from '@/lib/portal-access'
 
-async function studentPortalAccessBlocked(
-  supabase: SupabaseClient,
-  userId: string
-): Promise<boolean> {
-  const { data: companyUser } = await supabase
-    .from('company_users')
-    .select('id')
-    .eq('id', userId)
-    .maybeSingle()
+export async function middleware(req: NextRequest) {
+  const res = NextResponse.next()
+  const { pathname } = req.nextUrl
 
-  if (companyUser) return false
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('portal_access')
-    .eq('id', userId)
-    .maybeSingle()
-
-  return profile != null && profile.portal_access === false
-}
-
-export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request })
+  // Skip middleware for static files and API routes
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/api') ||
+    pathname.includes('.')
+  ) {
+    return res
+  }
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -35,130 +22,85 @@ export async function middleware(request: NextRequest) {
     {
       cookies: {
         getAll() {
-          return request.cookies.getAll()
+          return req.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          )
-          supabaseResponse = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
+          cookiesToSet.forEach(({ name, value, options }) => {
+            req.cookies.set(name, value)
+            res.cookies.set(name, value, options)
+          })
         },
       },
     }
   )
 
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    data: { session },
+  } = await supabase.auth.getSession()
 
-  const pathname = request.nextUrl.pathname
-  const skipWaitlistGate = isLocalDevHostname(request.nextUrl.hostname)
-
-  const isPublicAdminRoute =
-    pathname === '/admin/login' || pathname === '/admin/signup'
-
-  if (!user && pathname.startsWith('/dashboard')) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/auth/login'
-    url.searchParams.set('redirectTo', request.nextUrl.pathname)
-    return NextResponse.redirect(url)
-  }
-
-  if (!user && pathname.startsWith('/onboarding')) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/auth/login'
-    return NextResponse.redirect(url)
-  }
-
-  if (!user && pathname.startsWith('/waitlist')) {
-    return NextResponse.redirect(new URL('/auth/login', request.url))
-  }
-
-  if (user && !skipWaitlistGate) {
-    const blocked = await studentPortalAccessBlocked(supabase, user.id)
-
-    if (
-      blocked &&
-      pathname.startsWith('/dashboard') &&
-      !pathname.startsWith('/dashboard/profile')
-    ) {
-      return NextResponse.redirect(new URL(WAITLIST_PROFILE_URL, request.url))
+  // --- Not logged in: protect all dashboard/admin routes ---
+  if (!session) {
+    if (pathname === '/admin/login' || pathname === '/admin/signup') {
+      return res
     }
-
-    if (blocked && pathname.startsWith('/onboarding')) {
-      return NextResponse.redirect(new URL(WAITLIST_PROFILE_URL, request.url))
+    if (pathname.startsWith('/dashboard') || pathname.startsWith('/admin')) {
+      return NextResponse.redirect(new URL('/auth/login', req.url))
     }
+    return res
   }
 
-  if (!isPublicAdminRoute && pathname.startsWith('/admin')) {
-    if (!user) {
-      return NextResponse.redirect(new URL('/admin/login', request.url))
-    }
+  // --- Logged in: check portal_access for student dashboard routes ---
+  // Only gate /dashboard routes that are NOT /dashboard/profile
+  const isProtectedDashboard =
+    pathname.startsWith('/dashboard') &&
+    !pathname.startsWith('/dashboard/profile')
 
-    if (!(await isAdminUserId(user.id))) {
-      return NextResponse.redirect(new URL('/admin/login', request.url))
-    }
-  }
-
-  const isCompanyPortalRoute =
-    pathname.startsWith('/company/dashboard') ||
-    pathname.startsWith('/company/jobs')
-
-  if (isCompanyPortalRoute && !user) {
-    return NextResponse.redirect(new URL('/company/login', request.url))
-  }
-
-  if (
-    user &&
-    (pathname.startsWith('/auth/login') ||
-      pathname.startsWith('/auth/signup'))
-  ) {
-    const url = request.nextUrl.clone()
-    if (await isAdminUserId(user.id)) {
-      url.pathname = '/admin/students'
-      return NextResponse.redirect(url)
-    }
-
+  if (isProtectedDashboard) {
+    // Check if this is a company user (bypass gate)
     const { data: companyUser } = await supabase
       .from('company_users')
       .select('id')
-      .eq('id', user.id)
+      .eq('id', session.user.id)
       .maybeSingle()
 
     if (companyUser) {
-      url.pathname = '/company/dashboard'
-      return NextResponse.redirect(url)
+      // Company user — full access
+      return res
+    }
+
+    const { data: adminRow } = await supabase
+      .from('admins')
+      .select('id')
+      .eq('id', session.user.id)
+      .maybeSingle()
+
+    if (adminRow) {
+      return res
     }
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('onboarding_complete, onboarding_step, portal_access')
-      .eq('id', user.id)
+      .select('portal_access')
+      .eq('id', session.user.id)
       .maybeSingle()
 
-    if (
-      profile &&
-      profile.portal_access === false &&
-      !skipWaitlistGate
-    ) {
-      return NextResponse.redirect(new URL(WAITLIST_PROFILE_URL, request.url))
-    } else if (!profile?.onboarding_complete) {
-      const step = profile?.onboarding_step ?? 0
-      url.pathname = `/onboarding/step/${Math.max(1, step + 1)}`
-    } else {
-      url.pathname = '/dashboard'
+    // Student without explicit portal_access — redirect to profile
+    if (isStudentWaitlisted(profile)) {
+      console.log(
+        '[Middleware] Blocking student - portal_access:',
+        profile?.portal_access,
+        'user:',
+        session.user.id
+      )
+      const url = new URL('/dashboard/profile', req.url)
+      url.searchParams.set('waitlisted', 'true')
+      return NextResponse.redirect(url)
     }
-    return NextResponse.redirect(url)
   }
 
-  return supabaseResponse
+  return res
 }
 
 export const config = {
-  matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
+  matcher: ['/dashboard/:path*', '/admin/:path*', '/auth/:path*'],
 }
