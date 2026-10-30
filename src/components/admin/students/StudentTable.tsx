@@ -16,6 +16,11 @@ function profileStatusClass(status: ProfileStatus | undefined) {
   }
 }
 
+const stickyActionsCell =
+  'sticky right-0 z-10 border-l border-line bg-white px-5 py-4 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.08)]'
+const stickyActionsHead =
+  'sticky right-0 z-10 border-l border-line bg-canvas px-5 py-3'
+
 type Props = {
   students: Profile[]
   searchQuery: string
@@ -68,30 +73,45 @@ export function StudentTable({
     )
   }
 
+  const hasSelect = Boolean(onToggleSelect)
+
   return (
-    <div className="overflow-hidden rounded-2xl border border-line bg-white">
-      <table className="w-full text-left">
+    <div className="w-full overflow-x-auto rounded-2xl border border-line bg-white">
+      <table className="w-full min-w-[1220px] text-left text-sm">
         <thead className="border-b border-line bg-canvas">
           <tr>
-            {[
-              ...(onToggleSelect ? [''] : []),
-              'Student',
-              'University',
-              'Role',
-              'Skills',
-              'Portal',
-              'Review',
-              'Onboarding',
-              'Joined',
-              'Actions',
-            ].map((h) => (
-              <th
-                key={h}
-                className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-slate"
-              >
-                {h}
-              </th>
-            ))}
+            {hasSelect ? (
+              <th className="w-12 px-3 py-3 text-xs font-semibold uppercase tracking-wider text-slate" />
+            ) : null}
+            <th className="w-[220px] px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate">
+              Student
+            </th>
+            <th className="w-[140px] px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate">
+              University
+            </th>
+            <th className="w-[100px] px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate">
+              Role
+            </th>
+            <th className="w-[160px] px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate">
+              Skills
+            </th>
+            <th className="w-[100px] px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate">
+              Portal
+            </th>
+            <th className="w-[100px] px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate">
+              Review
+            </th>
+            <th className="w-[160px] px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate">
+              Onboarding
+            </th>
+            <th className="w-[100px] px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate">
+              Joined
+            </th>
+            <th
+              className={`${stickyActionsHead} w-[180px] text-left text-xs font-semibold uppercase tracking-wider text-slate`}
+            >
+              Actions
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -101,15 +121,14 @@ export function StudentTable({
             const skills = s.skills ?? []
             const isDeleted = s.deleted === true
             const hasPortalAccess = s.portal_access === true
+            const rowBg = isDeleted ? 'bg-red-50/30' : 'bg-white'
             return (
               <tr
                 key={s.id}
-                className={`border-b border-line transition-colors last:border-0 hover:bg-canvas ${
-                  isDeleted ? 'bg-red-50/30' : ''
-                }`}
+                className={`border-b border-line transition-colors last:border-0 hover:bg-canvas ${rowBg}`}
               >
                 {onToggleSelect ? (
-                  <td className="px-5 py-4">
+                  <td className="w-12 px-3 py-4">
                     <input
                       type="checkbox"
                       checked={selectedIds?.has(s.id) ?? false}
@@ -117,29 +136,29 @@ export function StudentTable({
                     />
                   </td>
                 ) : null}
-                <td className="px-5 py-4">
+                <td className="w-[220px] px-4 py-4">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-navy text-xs font-bold text-white">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-navy text-xs font-bold text-white">
                       {initials(s.full_name, s.email)}
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold text-navy">
+                    <div className="min-w-0 max-w-[160px]">
+                      <p className="truncate text-sm font-semibold text-navy">
                         {s.full_name ?? '—'}
                       </p>
-                      <p className="text-xs text-slate">{s.email}</p>
+                      <p className="truncate text-xs text-slate">{s.email}</p>
                     </div>
                   </div>
                 </td>
-                <td className="px-5 py-4 text-sm text-navy">
-                  {s.university ?? '—'}
+                <td className="w-[140px] px-4 py-4 text-sm text-navy">
+                  <span className="line-clamp-2">{s.university ?? '—'}</span>
                 </td>
-                <td className="px-5 py-4">
-                  <span className="rounded-full bg-blue/10 px-2.5 py-1 text-xs font-medium capitalize text-blue">
+                <td className="w-[100px] px-4 py-4">
+                  <span className="whitespace-nowrap rounded-full bg-blue/10 px-2.5 py-1 text-xs font-medium capitalize text-blue">
                     {s.role_type ?? '—'}
                   </span>
                 </td>
-                <td className="px-5 py-4">
-                  <div className="flex max-w-[180px] flex-wrap gap-1">
+                <td className="w-[160px] px-4 py-4">
+                  <div className="flex flex-wrap gap-1">
                     {skills.slice(0, 3).map((sk) => (
                       <span
                         key={sk}
@@ -150,12 +169,12 @@ export function StudentTable({
                     ))}
                     {skills.length > 3 ? (
                       <span className="text-xs text-slate">
-                        +{skills.length - 3} more
+                        +{skills.length - 3}
                       </span>
                     ) : null}
                   </div>
                 </td>
-                <td className="px-5 py-4">
+                <td className="w-[100px] whitespace-nowrap px-4 py-4">
                   {hasPortalAccess ? (
                     <span className="rounded-full border border-teal/20 bg-teal-wash px-2.5 py-1 text-xs font-semibold text-teal">
                       Active
@@ -166,26 +185,30 @@ export function StudentTable({
                     </span>
                   )}
                 </td>
-                <td className="px-5 py-4">
+                <td className="w-[100px] whitespace-nowrap px-4 py-4">
                   <span
                     className={`rounded-full border px-2.5 py-1 text-xs font-semibold capitalize ${profileStatusClass(s.profile_status)}`}
                   >
                     {s.profile_status ?? 'pending'}
                   </span>
                 </td>
-                <td className="px-5 py-4">
-                  <p className="text-xs text-slate">Step {step}/4</p>
-                  <div className="mt-1 h-1.5 w-16 rounded-full bg-line">
+                <td className="w-[160px] px-4 py-4">
+                  <p className="whitespace-nowrap text-xs text-slate">
+                    Step {step}/4
+                  </p>
+                  <div className="mt-1 h-1.5 w-24 rounded-full bg-line">
                     <div
                       className="h-full rounded-full bg-teal"
                       style={{ width: `${pct}%` }}
                     />
                   </div>
                 </td>
-                <td className="px-5 py-4 text-sm text-slate">
+                <td className="w-[100px] whitespace-nowrap px-4 py-4 text-sm text-slate">
                   {formatDate(s.created_at)}
                 </td>
-                <td className="px-5 py-4">
+                <td
+                  className={`${stickyActionsCell} w-[180px] whitespace-nowrap ${isDeleted ? 'bg-red-50/30' : 'bg-white'}`}
+                >
                   {isDeleted ? (
                     <span className="mr-2 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-600">
                       Deleted

@@ -41,11 +41,11 @@ export function CompanyWaitlistTable({
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-line bg-white">
+    <div className="w-full overflow-x-auto rounded-2xl border border-line bg-white">
       <p className="border-b border-line bg-amber-50/50 px-5 py-2 text-xs font-semibold text-amber-900">
         Public signup — not yet onboarded to company portal
       </p>
-      <table className="w-full text-left text-sm">
+      <table className="w-full min-w-[880px] text-left text-sm">
         <thead className="border-b border-line bg-canvas">
           <tr>
             {['Company', 'Founder', 'Project', 'Submitted', 'Status', 'Actions'].map(

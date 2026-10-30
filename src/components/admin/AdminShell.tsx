@@ -11,9 +11,9 @@ export function AdminShell({
   return (
     <div className="flex w-full">
       <AdminSidebar />
-      <div className="flex min-h-screen flex-1 flex-col">
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
         <AdminNav title={title} />
-        <main className="mx-auto w-full max-w-[1200px] flex-1 p-8">
+        <main className="mx-auto w-full min-w-0 max-w-[1200px] flex-1 p-8">
           {children}
         </main>
       </div>
