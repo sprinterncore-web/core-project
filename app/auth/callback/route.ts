@@ -25,7 +25,7 @@ async function resolveStudentRedirect(
     return '/auth/login?error=not_edu'
   }
 
-  const { data: profile } = await supabase
+  let { data: profile } = await supabase
     .from('profiles')
     .select('id, onboarding_complete, onboarding_step, portal_access')
     .eq('id', user.id)
@@ -37,19 +37,32 @@ async function resolveStudentRedirect(
       (user.user_metadata?.name as string | undefined) ??
       null
 
-    const { error: insertError } = await supabase.from('profiles').insert({
-      id: user.id,
-      email: user.email ?? '',
-      full_name: fullName,
-      portal_access: false,
-      waitlist_submitted_at: new Date().toISOString(),
-    })
+    const { error: insertError } = await supabase.from('profiles').upsert(
+      {
+        id: user.id,
+        email: user.email ?? '',
+        full_name: fullName,
+        portal_access: false,
+        waitlist_submitted_at: new Date().toISOString(),
+      },
+      { onConflict: 'id', ignoreDuplicates: true }
+    )
 
     if (insertError) {
       console.error('[auth/callback] profile insert error:', insertError.message)
       return '/auth/login?error=auth_callback_failed'
     }
 
+    const { data: refetched } = await supabase
+      .from('profiles')
+      .select('id, onboarding_complete, onboarding_step, portal_access')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    profile = refetched
+  }
+
+  if (!profile) {
     return '/dashboard/profile?waitlisted=true'
   }
 
