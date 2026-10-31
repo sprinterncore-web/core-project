@@ -9,11 +9,8 @@ import { DeleteConfirmModal } from '@/components/ui/DeleteConfirmModal'
 import { StatCard } from '@/components/ui/StatCard'
 import { Toast } from '@/components/ui/Toast'
 import { useToast } from '@/hooks/useToast'
-import {
-  getAllStudents,
-  restoreStudent,
-  softDeleteStudent,
-} from '@/lib/supabase/admin'
+import { hardDeleteUser } from '@/lib/admin/hard-delete-user'
+import { getAllStudents, restoreStudent } from '@/lib/supabase/admin'
 import { updateProfile } from '@/lib/supabase/profile'
 import type { Profile } from '@/types/database'
 
@@ -204,14 +201,18 @@ export default function AdminStudentsPage() {
         onConfirm={async () => {
           if (!deleteModal.studentId) return
           setDeleteLoading(true)
-          await softDeleteStudent(deleteModal.studentId)
-          setDeleteModal({ open: false, studentId: null, studentName: '' })
+          const result = await hardDeleteUser(deleteModal.studentId)
           setDeleteLoading(false)
-          showToast('Student deleted', 'success')
+          if (!result.ok) {
+            showToast(result.error, 'error')
+            return
+          }
+          setDeleteModal({ open: false, studentId: null, studentName: '' })
+          showToast('Student permanently deleted', 'success')
           refresh()
         }}
         title={`Delete ${deleteModal.studentName}?`}
-        description="This will remove the student from the active pool and hide them from all views. Their data is preserved."
+        description="This permanently deletes their Supabase auth account and profile. This cannot be undone."
         isLoading={deleteLoading}
       />
 

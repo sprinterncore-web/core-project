@@ -7,7 +7,8 @@ import { Clock, Loader2 } from 'lucide-react'
 import { AdminShell } from '@/components/admin/AdminShell'
 import { DeleteConfirmModal } from '@/components/ui/DeleteConfirmModal'
 import { Toast } from '@/components/ui/Toast'
-import { getStudentMatches, softDeleteStudent } from '@/lib/supabase/admin'
+import { hardDeleteUser } from '@/lib/admin/hard-delete-user'
+import { getStudentMatches } from '@/lib/supabase/admin'
 import { getProfile, updateProfile } from '@/lib/supabase/profile'
 import { initials } from '@/lib/format'
 import type { Profile, ProfileStatus } from '@/types/database'
@@ -360,13 +361,21 @@ export default function AdminStudentDetailPage() {
         onClose={() => setDeleteOpen(false)}
         onConfirm={async () => {
           setDeleteLoading(true)
-          await softDeleteStudent(id)
+          const result = await hardDeleteUser(id)
           setDeleteLoading(false)
+          if (!result.ok) {
+            setToast({
+              message: result.error,
+              type: 'error',
+              visible: true,
+            })
+            return
+          }
           setDeleteOpen(false)
           router.push('/admin/students')
         }}
         title={`Delete ${profile?.full_name ?? profile?.email ?? 'student'}?`}
-        description="This will remove the student from the active pool and hide them from all views. Their data is preserved."
+        description="This permanently deletes their Supabase auth account and profile. This cannot be undone."
         isLoading={deleteLoading}
       />
 
