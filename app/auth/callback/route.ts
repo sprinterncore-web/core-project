@@ -46,6 +46,7 @@ async function resolveStudentRedirect(
     })
 
     if (insertError) {
+      console.error('[auth/callback] profile insert error:', insertError.message)
       return '/auth/login?error=auth_callback_failed'
     }
 
@@ -100,6 +101,10 @@ export async function GET(request: Request) {
   )
 
   const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+
+  if (error) {
+    console.error('[auth/callback] exchangeCodeForSession error:', error.message)
+  }
 
   let redirectPath = '/auth/login?error=auth_callback_failed'
 
